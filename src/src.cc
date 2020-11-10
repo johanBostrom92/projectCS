@@ -4,12 +4,13 @@
 #include <time.h>
 #include <iostream>
 #include <atomic>
+#include <matplot/matplot.h>
 
-#define INFECTION_RADIUS 1
+#define INFECTION_RADIUS 2
 #define RECOVERY_RATE 14
 #define INFECTION_PROBABILITY 5
 #define DIM 100
-#define MAX_TIME 200
+#define MAX_TIME 150
 
 enum agent_status {
         S, I, R
@@ -20,8 +21,8 @@ struct agent {
     int infection_radius = INFECTION_RADIUS;
     float infection_probability = INFECTION_PROBABILITY;
     //int social_distancing;
-    //bool inuarantine;
-    //bool symptoms;
+    //bool inQuarantine;
+    //bool showingSymptoms;
     int recovery_rate = RECOVERY_RATE;
 };
 
@@ -47,14 +48,29 @@ int main() {
     srand(time(NULL));
     int pZ = std::rand() % DIM*DIM-1;
     previous.agents[pZ].status = I;
+    /*pZ = std::rand() % DIM*DIM-1;
+    previous.agents[pZ].status = I;
+    pZ = std::rand() % DIM*DIM-1;
+    previous.agents[pZ].status = I;
+    pZ = std::rand() % DIM*DIM-1;
+    previous.agents[pZ].status = I; */
     board current = previous;
 	std::atomic_int sus = DIM*DIM-1;
 	std::atomic_int rem = 0;
 	std::atomic_int inf = 1;
-	for (unsigned int t = 0; t < MAX_TIME; t++) { //Loop tracking time
+	std::vector<double> susp = {};
+    std::vector<double> infe = {};
+    std::vector<double> remo = {};
+
+	for (unsigned int t = 0; t < MAX_TIME; t++)
+	{ //Loop tracking time
+#ifdef _WIN32
+        #pragma omp parallel for
+    #else
         #pragma omp parallel for collapse(2)
-        for (unsigned int y = 0; y < DIM; y++) {
-            for (unsigned int x = 0; x < DIM; x++) {
+    #endif
+        for (int y = 0; y < DIM; y++) {
+            for (int x = 0; x < DIM; x++) {
 
                 //{ Update agent
                 agent& self = previous.agents[y * DIM + x];
@@ -79,10 +95,10 @@ int main() {
                             }
 
                             agent& other = previous.agents[y_other * DIM + x_other];
-
-                            if (other.status == S) { //If neighbor is susceptible
-                                float inf = std::rand() % 100;
-                                if(inf <= INFECTION_PROBABILITY){
+                            agent& otherCurr = current.agents[y_other * DIM + x_other];
+                            if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
+                                float prob = std::rand() % 100;
+                                if(prob <= INFECTION_PROBABILITY){
                                     current.agents[y_other * DIM + x_other].status = I;
 									inf++;
 								}
@@ -98,11 +114,40 @@ int main() {
         }
         // TODO: optimize
         previous = current;
-        if(t % 10 == 0) {
+        /*if(t % 10 == 0) {
             std::cout << std::endl << "---- t: " << t;
             print_board(current);
-        }
-		sus = sus - rem - inf;
+        }*/
+		sus = DIM*DIM - rem - inf;
+		susp.push_back(sus);
+		remo.push_back(rem);
+		infe.push_back(inf);
 	} // /for t
+	{
+        using namespace matplot;
+
+		std::vector<std::vector<double>> Y = {susp, remo, infe};
+		/*    {1, 3, 1, 2}, {5, 2, 5, 6}, {3, 7, 3, 1}};
+            */
+		// auto f = gcf();
+        // f->width(f->width() * 2);
+        /*
+        subplot(1, 2, 0);
+        area(Y);
+        title("Stacked");
+        legend({"S", "R", "I"});
+        */
+        //subplot(1, 2, 1);
+        plot(Y, "-:gs");
+        title("Infected people");
+        xlabel("t (days)");
+        ylabel("population");
+        //legend({"S", "R", "I"});
+        legend({"S", "R", "I"});
+
+
+        show();
+    }
+    return 0;
 }
 
