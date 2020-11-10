@@ -43,4 +43,8 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
+# Build and use matplot++
+add_subdirectory(lib/matplotplusplus-1.0.1)
+target_link_libraries(${PROJECT_NAME} PUBLIC matplot)
+
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/dist")
