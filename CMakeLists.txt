@@ -4,7 +4,9 @@ cmake_minimum_required(VERSION 3.10.0)
 project(projectcs)
 
 # Specify build type
-set(CMAKE_BUILD_TYPE Debug)
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
 
 # Make vim happy
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -15,6 +17,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if(UNIX)
   set(CMAKE_CXX_FLAGS "-W -Wall")
+  set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif(UNIX)
 if(WIN32)
   set(CMAKE_CXX_FLAGS "/EHsc")
