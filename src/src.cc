@@ -6,10 +6,10 @@
 #include <atomic>
 #include <matplot/matplot.h>
 
-#define INFECTION_RADIUS 2
+#define INFECTION_RADIUS 50
 #define RECOVERY_RATE 14
-#define INFECTION_PROBABILITY 5
-#define DIM 100
+#define INFECTION_PROBABILITY 25
+#define DIM 1000
 #define MAX_TIME 150
 
 enum agent_status {
@@ -48,12 +48,12 @@ int main() {
     srand(time(NULL));
     int pZ = std::rand() % DIM*DIM-1;
     previous.agents[pZ].status = I;
-    /*pZ = std::rand() % DIM*DIM-1;
-    previous.agents[pZ].status = I;
     pZ = std::rand() % DIM*DIM-1;
     previous.agents[pZ].status = I;
     pZ = std::rand() % DIM*DIM-1;
-    previous.agents[pZ].status = I; */
+    previous.agents[pZ].status = I;
+    pZ = std::rand() % DIM*DIM-1;
+    previous.agents[pZ].status = I;
     board current = previous;
 	std::atomic_int sus = DIM*DIM-1;
 	std::atomic_int rem = 0;
@@ -77,7 +77,7 @@ int main() {
                 agent& currentSelf = current.agents[y * DIM + x];
                 if (self.status == I) { //The infected checks for susceptible neighbors within the box.
                     currentSelf.recovery_rate--;
-                    if(self.recovery_rate == 0){
+                    if(currentSelf.recovery_rate == 0){
                         currentSelf.status = R;
 						rem++;
 						inf--;
@@ -90,17 +90,17 @@ int main() {
                             int x_other = x + x_box;
                             if (y_other < 0 || y_other >= DIM)  { //Checks for Bounds
                                 break;
-                            } else if (x_other < 0 || x_other >= DIM) {
+                            } else if (x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) {
                                 continue;
                             }
 
                             agent& other = previous.agents[y_other * DIM + x_other];
                             agent& otherCurr = current.agents[y_other * DIM + x_other];
                             if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
-                                float prob = std::rand() % 100;
-                                if(prob <= INFECTION_PROBABILITY){
-                                    current.agents[y_other * DIM + x_other].status = I;
-									inf++;
+                                int prob = std::rand() % 100;
+                                if(prob < INFECTION_PROBABILITY){
+                                    otherCurr.status = I;
+ 									inf++;
 								}
                             }
                         }
@@ -122,6 +122,9 @@ int main() {
 		susp.push_back(sus);
 		remo.push_back(rem);
 		infe.push_back(inf);
+        //std::cout << t << std::endl;
+        // print_board(previous);
+        // std::cout << " --------- "  << std::endl;
 	} // /for t
 	{
         using namespace matplot;
@@ -138,11 +141,13 @@ int main() {
         legend({"S", "R", "I"});
         */
         //subplot(1, 2, 1);
-        plot(Y, "-:gs");
+        auto handles = plot(Y);
+        handles[0]->marker(line_spec::marker_style::point);
+        handles[1]->marker(line_spec::marker_style::point);
+        handles[2]->marker(line_spec::marker_style::point);
         title("Infected people");
         xlabel("t (days)");
         ylabel("population");
-        //legend({"S", "R", "I"});
         legend({"S", "R", "I"});
 
 
