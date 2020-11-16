@@ -7,9 +7,9 @@
 
 #define INFECTION_RADIUS 1
 #define RECOVERY_RATE 14
-#define INFECTION_PROBABILITY 5
-#define DIM 100
-#define MAX_TIME 200
+#define INFECTION_PROBABILITY 100
+#define DIM 3
+#define MAX_TIME 3
 
 enum agent_status {
         S, I, R
@@ -44,8 +44,18 @@ int main() {
         DIM,
         std::vector<agent>(DIM*DIM)
     };
+
     srand(time(NULL));
-    int pZ = std::rand() % DIM*DIM-1;
+    bool patient = false;
+    int pZ = 0;
+    while(!patient){
+      pZ = std::rand() % DIM*DIM-1;
+      if (pZ > -1) {
+        patient = true;
+      }
+    }
+    
+    std::cout << std::endl << "-------pZ:" << pZ;
     previous.agents[pZ].status = I;
     board current = previous;
 	std::atomic_int sus = DIM*DIM-1;
@@ -97,6 +107,11 @@ int main() {
             }
         }
         // TODO: optimize
+        std::cout << std::endl << "Current: ";
+        print_board(current);
+        std::cout << std::endl << "-------" ;
+        print_board(previous);
+        std::cout << std::endl << "Previous: " ;
         previous = current;
         if(t % 10 == 0) {
             std::cout << std::endl << "---- t: " << t;
@@ -105,4 +120,3 @@ int main() {
 		sus = sus - rem - inf;
 	} // /for t
 }
-
