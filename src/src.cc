@@ -54,7 +54,7 @@ int main() {
         patient = true;
       }
     }
-    
+
     std::cout << std::endl << "-------pZ:" << pZ;
     previous.agents[pZ].status = I;
     board current = previous;
@@ -107,11 +107,6 @@ int main() {
             }
         }
         // TODO: optimize
-        std::cout << std::endl << "Current: ";
-        print_board(current);
-        std::cout << std::endl << "-------" ;
-        print_board(previous);
-        std::cout << std::endl << "Previous: " ;
         previous = current;
         if(t % 10 == 0) {
             std::cout << std::endl << "---- t: " << t;
