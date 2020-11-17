@@ -5,12 +5,15 @@
 #include <iostream>
 #include <atomic>
 #include <matplot/matplot.h>
+#include <cmath>
 
 #define INFECTION_RADIUS 50
 #define RECOVERY_RATE 14
 #define INFECTION_PROBABILITY 25
 #define DIM 1000
-#define MAX_TIME 150
+#define MAX_TIME 140
+#define QUARANTINE 30
+#define Q_FLAG true
 
 enum agent_status {
         S, I, R
@@ -46,13 +49,13 @@ int main() {
         std::vector<agent>(DIM*DIM)
     };
     srand(time(NULL));
-    int pZ = std::rand() % DIM*DIM-1;
+    int pZ = std::rand() % DIM * (DIM - 1);
     previous.agents[pZ].status = I;
-    pZ = std::rand() % DIM*DIM-1;
+    pZ = std::rand() % DIM*(DIM-1);
     previous.agents[pZ].status = I;
-    pZ = std::rand() % DIM*DIM-1;
+    pZ = std::rand() % DIM * (DIM - 1);
     previous.agents[pZ].status = I;
-    pZ = std::rand() % DIM*DIM-1;
+    pZ = std::rand() % DIM * (DIM - 1);
     previous.agents[pZ].status = I;
     board current = previous;
 	std::atomic_int sus = DIM*DIM-1;
@@ -64,6 +67,7 @@ int main() {
 
 	for (unsigned int t = 0; t < MAX_TIME; t++)
 	{ //Loop tracking time
+        
 #ifdef _WIN32
         #pragma omp parallel for
     #else
@@ -84,8 +88,18 @@ int main() {
 						continue;
                     }
                     //{ Check neighbours
-                    for (int y_box = -self.infection_radius; y_box <= self.infection_radius; y_box++) {
-                        for (int x_box = -self.infection_radius; x_box <= self.infection_radius; x_box++) {
+                    int rad= self.infection_radius;
+                    if (t >= QUARANTINE && Q_FLAG) {
+                        rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE))) / static_cast<double>(RECOVERY_RATE)));
+                        //std::cout << "current radious is " << rad << std::endl;
+                       
+                    }
+                    if (rad <= 0) {
+                        continue;
+                    }
+                    
+                    for (int y_box = -rad; y_box <= rad; y_box++) {
+                        for (int x_box = -rad; x_box <= rad; x_box++) {
                             int y_other = y + y_box;
                             int x_other = x + x_box;
                             if (y_other < 0 || y_other >= DIM)  { //Checks for Bounds
@@ -101,7 +115,9 @@ int main() {
                                 if(prob < INFECTION_PROBABILITY){
                                     otherCurr.status = I;
  									inf++;
+                                    
 								}
+                                //goto Exit; //Testing theory
                             }
                         }
 
@@ -109,7 +125,8 @@ int main() {
                     //}
                 }
                 //}
-
+            //Exit: //Testing theory regarding beta compared to paper.
+              //  int testing = 0; //Required for line above
             }
         }
         // TODO: optimize
