@@ -4,12 +4,26 @@
 #include <time.h>
 #include <iostream>
 #include <atomic>
+#include <random>
+#include <numeric>
 
 #define INFECTION_RADIUS 1
 #define RECOVERY_RATE 14
 #define INFECTION_PROBABILITY 100
 #define DIM 3
 #define MAX_TIME 3
+#define N_PATIENT_ZERO 4
+
+// Defines a type of agent, by its infection radius and how often it should occur.
+struct agent_type {
+    float radius_mean;
+    float radius_stddev;
+    double weight;
+};
+
+static const std::vector<agent_type> agent_types = {
+    agent_type{ 50, 0, 1 }
+};
 
 enum agent_status {
         S, I, R
@@ -39,24 +53,51 @@ void print_board(board& b){
     }
 }
 
-int main() {
-    board previous = {
+board generate_board() {
+    board b = {
         DIM,
         std::vector<agent>(DIM*DIM)
     };
-
-    srand(time(NULL));
-    bool patient = false;
-    int pZ = 0;
-    while(!patient){
-      pZ = std::rand() % DIM*DIM-1;
-      if (pZ > -1) {
-        patient = true;
-      }
+    // Set initial infections
+    for (int i = 0; i < N_PATIENT_ZERO; i++) {
+        int pZ = std::rand() % DIM*DIM;
+        b.agents[pZ].status = I;
     }
 
-    std::cout << std::endl << "-------pZ:" << pZ;
-    previous.agents[pZ].status = I;
+    // Get the sum of all type weights
+    double weight_sum = 0.0f;
+    for (int i = 0; i < agent_types.size(); i++) {
+        auto& type = agent_types[i];
+        weight_sum += type.weight;
+    }
+
+    // Randomize an agent type for every agent, then generate and assign a radius using that type
+    std::default_random_engine rand_generator;
+    std::uniform_real_distribution type_dist(0.0, weight_sum);
+    for(auto& agent : b.agents) {
+        double type_val = type_dist(rand_generator);
+        double cumulative_weight = 0.0f;
+        for (int i = 0; i < agent_types.size(); i++) {
+            auto& type = agent_types[i];
+            if (cumulative_weight + type.weight >= type_val) {
+                if (type.radius_stddev == 0) {  // Uses a fixed radius for agents of this type
+                    agent.infection_radius = type.radius_mean;
+                } else {  // Generates a radius from a normal distribution
+                    agent.infection_radius = std::normal_distribution<float>(type.radius_mean, type.radius_stddev)(rand_generator);
+                }
+                break;
+            }
+            cumulative_weight += type.weight;
+        }
+    }
+    return b;
+}
+
+int main() {
+    srand(time(NULL));
+
+    board previous = generate_board();
+
     board current = previous;
 	std::atomic_int sus = DIM*DIM-1;
 	std::atomic_int rem = 0;
@@ -109,7 +150,7 @@ int main() {
         // TODO: optimize
         previous = current;
         if(t % 10 == 0) {
-            std::cout << std::endl << "---- t: " << t;
+            std::cout << std::endl << "---- t: " << t + 1;
             print_board(current);
         }
 		sus = sus - rem - inf;
