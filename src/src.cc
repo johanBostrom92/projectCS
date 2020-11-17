@@ -15,7 +15,7 @@
 #define STARTER_AGENTS 1
 
 enum agent_status {
-        S, I, R, X
+        S, I, R
 };
 
 struct agent {
@@ -39,12 +39,7 @@ void print_board(board& b){
         if(i % DIM == 0){
             std::endl (std::cout);
         }
-        if (b.agents[i].status == X) {
-            std::cout << "X" << " ";
-        }
-        else {
             std::cout << b.agents[i].status << " ";
-        }
     }
 }
 
@@ -127,18 +122,18 @@ int main() {
     std::uniform_int_distribution<int> dis(0, (DIM*DIM-1));
 
     int seeded = 0;
-    //while (seeded != STARTER_AGENTS) {
-    //    int pZ = dis(gen);
-    //    if (uppsala_prev.agents[pZ].status != I) {
-    //        uppsala_prev.agents[pZ].status = I;
-    //        std::cout << "pz is: " << pZ;
-    //        seeded++;
-    //    }
+    // Func to spawn starter infecitous agents
+    while (seeded != STARTER_AGENTS) {
+        int pz = dis(gen);
+        if (uppsala_prev.agents[pz].status != I) {
+            uppsala_prev.agents[pz].status = I;
+            std::cout << "pz is: " << pz;
+            seeded++;
+        }
 
-    //}
-    uppsala_prev.agents[0].status = X;
+    }
+ 
 
-    //previous.agents[pZ].status = I;
     board uppsala_curr = uppsala_prev;
     board sthlm_curr = sthlm_prev;
 	std::atomic_int sus = DIM*DIM-1;
@@ -150,9 +145,6 @@ int main() {
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking time
-        if (t == 1) {
-            move(uppsala_curr, sthlm_curr, 0);
-        }
         // TODO: optimize
         step(uppsala_prev, uppsala_curr, gen);
         step(sthlm_prev, sthlm_curr, gen);
