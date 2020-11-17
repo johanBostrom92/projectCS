@@ -6,13 +6,25 @@
 #include <atomic>
 #include <random>
 #include <matplot/matplot.h>
+#include <numeric>
 
 #define INFECTION_RADIUS 1
 #define RECOVERY_RATE 5
 #define INFECTION_PROBABILITY 25
-#define DIM 5
+#define DIM 10
 #define MAX_TIME 10
 #define STARTER_AGENTS 1
+
+// Defines a type of agent, by its infection radius and how often it should occur.
+struct agent_type {
+    float radius_mean;
+    float radius_stddev;
+    double weight;
+};
+
+static const std::vector<agent_type> agent_types = {
+    agent_type{ 50, 0, 1 }
+};
 
 enum agent_status {
         S, I, R
@@ -43,6 +55,45 @@ void print_board(board& b){
     }
 }
 
+board generate_board() {
+    board b = {
+        DIM,
+        std::vector<agent>(DIM*DIM)
+    };
+    // set initial infections
+    //for (int i = 0; i < n_patient_zero; i++) {
+    //    int pz = std::rand() % dim*dim;
+    //    b.agents[pz].status = i;
+    //}
+
+    // Get the sum of all type weights
+    double weight_sum = 0.0f;
+    for (int i = 0; i < agent_types.size(); i++) {
+        auto& type = agent_types[i];
+        weight_sum += type.weight;
+    }
+
+    // Randomize an agent type for every agent, then generate and assign a radius using that type
+    std::default_random_engine rand_generator;
+    std::uniform_real_distribution type_dist(0.0, weight_sum);
+    for(auto& agent : b.agents) {
+        double type_val = type_dist(rand_generator);
+        double cumulative_weight = 0.0f;
+        for (int i = 0; i < agent_types.size(); i++) {
+            auto& type = agent_types[i];
+            if (cumulative_weight + type.weight >= type_val) {
+                if (type.radius_stddev == 0) {  // Uses a fixed radius for agents of this type
+                    agent.infection_radius = type.radius_mean;
+                } else {  // Generates a radius from a normal distribution
+                    agent.infection_radius = std::normal_distribution<float>(type.radius_mean, type.radius_stddev)(rand_generator);
+                }
+                break;
+            }
+            cumulative_weight += type.weight;
+        }
+    }
+    return b;
+}
 
 //          move(uppsala_prev, sthlm_prev, 0);
 void move(board& previous, board& current, int idx) {
@@ -89,7 +140,7 @@ void step(board& previous, board& current, std::mt19937_64 gen) {
                             std::uniform_int_distribution<int> dis2(0, 100);
                             int prob = dis2(gen);
                             //int prob = std::rand() % 100;
-                            if (prob < INFECTION_PROBABILITY) {
+                            if (prob <= INFECTION_PROBABILITY) {
                                 otherCurr.status = I;
                                 //inf++;
                             }
@@ -195,4 +246,3 @@ int main() {
     }
     return 0;
 }
-

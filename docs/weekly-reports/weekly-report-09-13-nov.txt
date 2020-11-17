@@ -1,0 +1,8 @@
+For this week the group had an initial meeting where we laid down the expectations and mindset for this project, what other courses members had etc. 
+
+We began with breaking down the task a setting four major milestones, along with a number of features. Based on these four milestone we broke down tasks related to getting a first basic simulation up and running. The tasks were added as issues in our github repository. 
+
+We decided, mainly due to computation time, that we would write the computation heavy parts in c++, staying open to possibly using python for less computation heavy parts. 
+We have through the first week mainly worked together with developing the basic code using visual studio code live share. As an initial idea the group wished to use a framework to facilitate the process of creating a basic board, so that we could focus more on the advanced parts. For various reason we decided to drop the frameworks and developed our own simulation from scratch. 
+
+As of the first week we have a LxL board which is fully populated with static agents (i.e. we have not as of yet added any functionality for them to move around) A patient zero is asigned and according to the formulas presented in the paper we perform out simulation. As of the first week we have completed the simulations but we fear that something in our infection algorithm might be off, as our graph differs significantly with that of the paper, eventhough we have the same input values. 
