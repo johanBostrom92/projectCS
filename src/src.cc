@@ -12,8 +12,9 @@
 #define INFECTION_PROBABILITY 25
 #define DIM 1000
 #define MAX_TIME 140
-#define QUARANTINE 30
+#define QUARANTINE 5
 #define Q_FLAG true
+#define LAMBDA 2.5
 
 enum agent_status {
         S, I, R
@@ -67,7 +68,7 @@ int main() {
 
 	for (unsigned int t = 0; t < MAX_TIME; t++)
 	{ //Loop tracking time
-        
+       
 #ifdef _WIN32
         #pragma omp parallel for
     #else
@@ -90,7 +91,7 @@ int main() {
                     //{ Check neighbours
                     int rad= self.infection_radius;
                     if (t >= QUARANTINE && Q_FLAG) {
-                        rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE))) / static_cast<double>(RECOVERY_RATE)));
+                        rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE))) / LAMBDA));
                         //std::cout << "current radious is " << rad << std::endl;
                        
                     }
