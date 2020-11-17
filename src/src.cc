@@ -4,6 +4,7 @@
 #include <time.h>
 #include <iostream>
 #include <atomic>
+#include <random>
 #include <matplot/matplot.h>
 
 #define INFECTION_RADIUS 50
@@ -11,6 +12,7 @@
 #define INFECTION_PROBABILITY 25
 #define DIM 1000
 #define MAX_TIME 150
+#define STARTER_AGENTS 4
 
 enum agent_status {
         S, I, R
@@ -32,11 +34,12 @@ struct board {
 };
 
 void print_board(board& b){
+    //const std::string status[3] = { "S", "I", "R" };
     for(int i = 0; i < DIM*DIM; i++){
         if(i % DIM == 0){
             std::endl (std::cout);
         }
-        std::cout <<  b.agents[i].status << " ";
+        std::cout << b.agents[i].status << " ";
     }
 }
 
@@ -45,15 +48,19 @@ int main() {
         DIM,
         std::vector<agent>(DIM*DIM)
     };
-    srand(time(NULL));
-    int pZ = std::rand() % DIM*DIM-1;
-    previous.agents[pZ].status = I;
-    pZ = std::rand() % DIM*DIM-1;
-    previous.agents[pZ].status = I;
-    pZ = std::rand() % DIM*DIM-1;
-    previous.agents[pZ].status = I;
-    pZ = std::rand() % DIM*DIM-1;
-    previous.agents[pZ].status = I;
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<int> dis(0, (DIM*DIM-1));
+
+    int seeded = 0;
+    while (seeded != STARTER_AGENTS) {
+        int pZ = dis(gen);
+        if (previous.agents[pZ].status != I) {
+            previous.agents[pZ].status = I;
+            seeded++;
+        }
+    }
+    //previous.agents[pZ].status = I;
     board current = previous;
 	std::atomic_int sus = DIM*DIM-1;
 	std::atomic_int rem = 0;
@@ -62,13 +69,13 @@ int main() {
     std::vector<double> infe = {};
     std::vector<double> remo = {};
 
-	for (unsigned int t = 0; t < MAX_TIME; t++)
-	{ //Loop tracking time
+    for (unsigned int t = 0; t < MAX_TIME; t++)
+    { //Loop tracking time
 #ifdef _WIN32
-        #pragma omp parallel for
-    #else
-        #pragma omp parallel for collapse(2)
-    #endif
+#pragma omp parallel for
+#else
+#pragma omp parallel for collapse(2)
+#endif
         for (int y = 0; y < DIM; y++) {
             for (int x = 0; x < DIM; x++) {
 
@@ -77,31 +84,34 @@ int main() {
                 agent& currentSelf = current.agents[y * DIM + x];
                 if (self.status == I) { //The infected checks for susceptible neighbors within the box.
                     currentSelf.recovery_rate--;
-                    if(currentSelf.recovery_rate == 0){
+                    if (currentSelf.recovery_rate == 0) {
                         currentSelf.status = R;
-						rem++;
-						inf--;
-						continue;
+                        rem++;
+                        inf--;
+                        continue;
                     }
                     //{ Check neighbours
                     for (int y_box = -self.infection_radius; y_box <= self.infection_radius; y_box++) {
                         for (int x_box = -self.infection_radius; x_box <= self.infection_radius; x_box++) {
                             int y_other = y + y_box;
                             int x_other = x + x_box;
-                            if (y_other < 0 || y_other >= DIM)  { //Checks for Bounds
+                            if (y_other < 0 || y_other >= DIM) { //Checks for Bounds
                                 break;
-                            } else if (x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) {
+                            }
+                            else if (x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) {
                                 continue;
                             }
 
                             agent& other = previous.agents[y_other * DIM + x_other];
                             agent& otherCurr = current.agents[y_other * DIM + x_other];
                             if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
-                                int prob = std::rand() % 100;
-                                if(prob < INFECTION_PROBABILITY){
+                                std::uniform_int_distribution<int> dis2(0, 100);
+                                int prob = dis2(gen);
+                                //int prob = std::rand() % 100;
+                                if (prob < INFECTION_PROBABILITY) {
                                     otherCurr.status = I;
- 									inf++;
-								}
+                                    inf++;
+                                }
                             }
                         }
 
@@ -118,13 +128,14 @@ int main() {
             std::cout << std::endl << "---- t: " << t;
             print_board(current);
         }*/
-		sus = DIM*DIM - rem - inf;
-		susp.push_back(sus);
-		remo.push_back(rem);
-		infe.push_back(inf);
-        //std::cout << t << std::endl;
-        // print_board(previous);
-        // std::cout << " --------- "  << std::endl;
+        sus = DIM * DIM - rem - inf;
+        susp.push_back(sus);
+        remo.push_back(rem);
+        infe.push_back(inf);
+        //std::cout << "TImestep : " << t << std::endl;
+        //std::cout << "seeded: " << seeded;
+        //print_board(previous);
+
 	} // /for t
 	{
         using namespace matplot;
@@ -145,10 +156,10 @@ int main() {
         handles[0]->marker(line_spec::marker_style::point);
         handles[1]->marker(line_spec::marker_style::point);
         handles[2]->marker(line_spec::marker_style::point);
-        title("Infected people");
+        title("infected people");
         xlabel("t (days)");
         ylabel("population");
-        legend({"S", "R", "I"});
+        legend({"s", "r", "i"});
 
 
         show();
