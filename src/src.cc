@@ -96,10 +96,10 @@ board generate_board() {
 }
 
 //          move(uppsala_prev, sthlm_prev, 0);
-void move(board& previous, board& current, int idx) {
-    agent sthlm_agent = current.agents[idx];
+void swap(board& previous, board& current, int idx) {
+    agent swap_agent = current.agents[idx];
     current.agents[idx] = previous.agents[idx];
-    previous.agents[idx] = sthlm_agent;
+    previous.agents[idx] = swap_agent;
 }
 
 void step(board& previous, board& current, std::mt19937_64 gen) {
