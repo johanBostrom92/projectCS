@@ -183,7 +183,7 @@ int main() {
         }
 
     }
- 
+
 
     board uppsala_curr = uppsala_prev;
     board sthlm_curr = sthlm_prev;
@@ -221,28 +221,15 @@ int main() {
         using namespace matplot;
 
 		std::vector<std::vector<double>> Y = {susp, remo, infe};
-		/*    {1, 3, 1, 2}, {5, 2, 5, 6}, {3, 7, 3, 1}};
-            */
-		// auto f = gcf();
-        // f->width(f->width() * 2);
-        /*
-        subplot(1, 2, 0);
-        area(Y);
-        title("Stacked");
-        legend({"S", "R", "I"});
-        */
-        //subplot(1, 2, 1);
-        //auto handles = plot(Y);
-        //handles[0]->marker(line_spec::marker_style::point);
-        //handles[1]->marker(line_spec::marker_style::point);
-        //handles[2]->marker(line_spec::marker_style::point);
-        //title("infected people");
-        //xlabel("t (days)");
-        //ylabel("population");
-        //legend({"s", "r", "i"});
+        plot(Y);
+        title("infected people");
+        xlabel("t (days)");
+        ylabel("population");
+#ifndef _WIN32
+        legend({"s", "r", "i"});
+#endif
 
-
-        //show();
+        show();
     }
     return 0;
 }
