@@ -6,6 +6,7 @@
 #include <atomic>
 #include <matplot/matplot.h>
 #include <cmath>
+#include <random>
 
 #define INFECTION_RADIUS 50
 #define RECOVERY_RATE 14
@@ -13,8 +14,9 @@
 #define DIM 1000
 #define MAX_TIME 140
 #define QUARANTINE 5
-#define Q_FLAG true
+#define Q_FLAG false
 #define LAMBDA 2.5
+#define ONE_CHANCE true
 
 enum agent_status {
         S, I, R
@@ -82,52 +84,74 @@ int main() {
                 agent& currentSelf = current.agents[y * DIM + x];
                 if (self.status == I) { //The infected checks for susceptible neighbors within the box.
                     currentSelf.recovery_rate--;
-                    if(currentSelf.recovery_rate == 0){
+                    if (currentSelf.recovery_rate == 0) {
                         currentSelf.status = R;
-						rem++;
-						inf--;
-						continue;
+                        rem++;
+                        inf--;
+                        continue;
                     }
                     //{ Check neighbours
-                    int rad= self.infection_radius;
+                    int rad = self.infection_radius;
                     if (t >= QUARANTINE && Q_FLAG) {
                         rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE))) / LAMBDA));
                         //std::cout << "current radious is " << rad << std::endl;
-                       
+
                     }
                     if (rad <= 0) {
                         continue;
                     }
-                    
-                    for (int y_box = -rad; y_box <= rad; y_box++) {
-                        for (int x_box = -rad; x_box <= rad; x_box++) {
-                            int y_other = y + y_box;
-                            int x_other = x + x_box;
-                            if (y_other < 0 || y_other >= DIM)  { //Checks for Bounds
-                                break;
-                            } else if (x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) {
-                                continue;
-                            }
-
-                            agent& other = previous.agents[y_other * DIM + x_other];
-                            agent& otherCurr = current.agents[y_other * DIM + x_other];
-                            if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
-                                int prob = std::rand() % 100;
-                                if(prob < INFECTION_PROBABILITY){
-                                    otherCurr.status = I;
- 									inf++;
-                                    
-								}
-                                //goto Exit; //Testing theory
+                    if (ONE_CHANCE) {
+                    Repeat:
+                        std::random_device rd;
+                        std::mt19937_64 gen(rd());
+                        std::uniform_int_distribution<int> dis(-rad, rad);
+                        int x_rand = dis(gen);
+                        int y_rand = dis(gen);
+                        int y_other = y_rand + y;
+                        int x_other = x_rand + x;
+                        if (y_other < 0 || y_other >= DIM || x_other < 0 || x_other >= DIM) {
+                            goto Repeat;
+                        }
+                        agent& other = previous.agents[y_other * DIM + x_other];
+                        agent& otherCurr = current.agents[y_other * DIM + x_other];
+                        if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
+                            int prob = std::rand() % 100;
+                            if (prob < INFECTION_PROBABILITY) {
+                                otherCurr.status = I;
+                                inf++;
                             }
                         }
 
                     }
-                    //}
+                    else{
+                        for (int y_box = -rad; y_box <= rad; y_box++) {
+                            for (int x_box = -rad; x_box <= rad; x_box++) {
+                                int y_other = y + y_box;
+                                int x_other = x + x_box;
+                                if (y_other < 0 || y_other >= DIM)  { //Checks for Bounds
+                                    break;
+                                } else if (x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) {
+                                    continue;
+                                }
+                                agent& other = previous.agents[y_other * DIM + x_other];
+                                agent& otherCurr = current.agents[y_other * DIM + x_other];
+                                if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
+                                    int prob = std::rand() % 100;
+                                    if(prob < INFECTION_PROBABILITY){
+                                        otherCurr.status = I;
+ 									    inf++;
+                                    
+								    }
+                                    //goto Exit; //Testing theory
+                                }
+                            }
+
+                        }
+                    
                 }
-                //}
+                }
             //Exit: //Testing theory regarding beta compared to paper.
-              //  int testing = 0; //Required for line above
+                //int testing = 0; //Required for line above
             }
         }
         // TODO: optimize
@@ -148,27 +172,14 @@ int main() {
         using namespace matplot;
 
 		std::vector<std::vector<double>> Y = {susp, remo, infe};
-		/*    {1, 3, 1, 2}, {5, 2, 5, 6}, {3, 7, 3, 1}};
-            */
-		// auto f = gcf();
-        // f->width(f->width() * 2);
-        /*
-        subplot(1, 2, 0);
-        area(Y);
-        title("Stacked");
-        legend({"S", "R", "I"});
-        */
-        //subplot(1, 2, 1);
-        auto handles = plot(Y);
-        handles[0]->marker(line_spec::marker_style::point);
-        handles[1]->marker(line_spec::marker_style::point);
-        handles[2]->marker(line_spec::marker_style::point);
-        title("Infected people");
-        xlabel("t (days)");
-        ylabel("population");
-        legend({"S", "R", "I"});
-
-
+		
+            plot(Y);
+            title("infected people");
+            xlabel("t (days)");
+            ylabel("population");
+#ifndef _WIN32
+    legend({ "s", "r", "i" });
+#endif
         show();
     }
     return 0;
