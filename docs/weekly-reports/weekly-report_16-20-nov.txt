@@ -1,0 +1,9 @@
+We have continued to investigate why our model differs from that in the paper and are making slow, painstaking progress. 
+A number of issues stemming from bugs in our randomness function have been fixed.
+We have implemented support for different types of agents and seperate communities. As of now, we can swap an agent 
+with one from another communitiy (we are thinking about having a community that moves around at each timestep, 
+allowing there to be empty spaces in a community in stead of our current rigid and always full structure. In that case 
+we'll change the 'swap' function to a 'move' or 'transfer' function.)
+
+We are working on quarantine functionality
+We have begun looking into different ways of visualizing the simulation
