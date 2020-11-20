@@ -10,7 +10,7 @@
 
 #define INFECTION_RADIUS 50
 #define RECOVERY_RATE 14
-#define INFECTION_PROBABILITY 25
+#define INFECTION_PROBABILITY 30
 #define DIM 1000
 #define MAX_TIME 140
 #define QUARANTINE 5
@@ -101,9 +101,11 @@ int main() {
                         continue;
                     }
                     if (ONE_CHANCE) {
-                    Repeat:
                         std::random_device rd;
                         std::mt19937_64 gen(rd());
+                        int repeated = 0;
+                    Repeat:
+                        
                         std::uniform_int_distribution<int> dis(-rad, rad);
                         int x_rand = dis(gen);
                         int y_rand = dis(gen);
@@ -119,6 +121,14 @@ int main() {
                             if (prob < INFECTION_PROBABILITY) {
                                 otherCurr.status = I;
                                 inf++;
+                            }
+                            
+                        }
+                        else {
+                            if (repeated <= (rad * rad)) {
+                                repeated++;
+                                //std::cout << "printing rep " << repeated<<std::endl;
+                                goto Repeat;
                             }
                         }
 
@@ -177,9 +187,9 @@ int main() {
             title("infected people");
             xlabel("t (days)");
             ylabel("population");
-#ifndef _WIN32
-    legend({ "s", "r", "i" });
-#endif
+//#ifndef _WIN32
+//    legend({ "s", "r", "i" });
+//#endif
         show();
     }
     return 0;
