@@ -7,10 +7,13 @@
 #include <matplot/matplot.h>
 #include <cmath>
 #include <random>
+#include <chrono>
+#include <tuple>
+#include <algorithm>
 
 #define INFECTION_RADIUS 50
 #define RECOVERY_RATE 14
-#define INFECTION_PROBABILITY 30
+#define INFECTION_PROBABILITY 25
 #define DIM 1000
 #define MAX_TIME 140
 #define QUARANTINE 5
@@ -52,21 +55,36 @@ int main() {
         std::vector<agent>(DIM*DIM)
     };
     srand(time(NULL));
-    int pZ = std::rand() % DIM * (DIM - 1);
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<int> dis(0, (DIM*DIM-1));
+    int seeded = 0;
+    // Func to spawn starter infecitous agents
+    while (seeded != 4) {
+        int pz = dis(gen);
+        previous.agents[pz].status = I;
+        std::cout << "pz is: " << pz;
+        seeded++;
+        
+
+    }
+    /*int pZ = std::rand() % DIM * (DIM - 1);
     previous.agents[pZ].status = I;
     pZ = std::rand() % DIM*(DIM-1);
     previous.agents[pZ].status = I;
     pZ = std::rand() % DIM * (DIM - 1);
     previous.agents[pZ].status = I;
     pZ = std::rand() % DIM * (DIM - 1);
-    previous.agents[pZ].status = I;
+    previous.agents[pZ].status = I;*/
     board current = previous;
-	std::atomic_int sus = DIM*DIM-1;
+	std::atomic_int sus = DIM*DIM-4;
 	std::atomic_int rem = 0;
-	std::atomic_int inf = 1;
+	std::atomic_int inf = 4;
 	std::vector<double> susp = {};
     std::vector<double> infe = {};
     std::vector<double> remo = {};
+
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
 	for (unsigned int t = 0; t < MAX_TIME; t++)
 	{ //Loop tracking time
@@ -101,35 +119,58 @@ int main() {
                         continue;
                     }
                     if (ONE_CHANCE) {
-                        std::random_device rd;
-                        std::mt19937_64 gen(rd());
-                        int repeated = 0;
-                    Repeat:
-                        
-                        std::uniform_int_distribution<int> dis(-rad, rad);
-                        int x_rand = dis(gen);
-                        int y_rand = dis(gen);
-                        int y_other = y_rand + y;
-                        int x_other = x_rand + x;
-                        if (y_other < 0 || y_other >= DIM || x_other < 0 || x_other >= DIM) {
-                            goto Repeat;
+                        //std::random_device rd;
+                        //std::mt19937_64 gen(rd());
+                        //std::uniform_int_distribution<int> dis(-rad, rad);
+                       
+                        std::vector<std::tuple<int, int>> checked;
+                        for (int y_box = -rad; y_box <= rad; y_box++) {
+                            for (int x_box = -rad; x_box <= rad; x_box++) {
+                                int y_other = y + y_box;
+                                int x_other = x + x_box;
+                                if (y_other < 0 || y_other >= DIM) { //Checks for Bounds
+                                    break;
+                                }
+                                else if (x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) {
+                                    continue;
+                                }
+                                agent& other = previous.agents[y_other * DIM + x_other];
+                                if (other.status == S) {
+                                    checked.push_back(std::make_tuple(x_other, y_other));
+                                }
+                            }
                         }
+                        
+                    Repeat:
+                        int size = checked.size();
+                        std::uniform_int_distribution<int> dis3(0, size-1);
+                        int rand_S = dis3(gen);
+                        if (size <= 0) {
+                           continue;
+                        }
+                        int y_other = std::get<1>(checked.at(rand_S));
+                        int x_other = std::get<0>(checked.at(rand_S));
                         agent& other = previous.agents[y_other * DIM + x_other];
                         agent& otherCurr = current.agents[y_other * DIM + x_other];
+                       
                         if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
-                            int prob = std::rand() % 100;
-                            if (prob < INFECTION_PROBABILITY) {
+                            //int prob = std::rand() % 100;
+                            std::uniform_int_distribution<int> dis2(0, 100);
+                            int prob = dis2(gen);
+                            if (prob <= INFECTION_PROBABILITY) {
                                 otherCurr.status = I;
                                 inf++;
                             }
                             
                         }
                         else {
-                            if (repeated <= (rad * rad)) {
-                                repeated++;
-                                //std::cout << "printing rep " << repeated<<std::endl;
-                                goto Repeat;
-                            }
+                            
+                            checked.erase(checked.begin() + rand_S);
+                            
+                            if (checked.size() == 0 ) { continue; }
+                            
+                            goto Repeat;
+                            
                         }
 
                     }
@@ -182,7 +223,7 @@ int main() {
         using namespace matplot;
 
 		std::vector<std::vector<double>> Y = {susp, remo, infe};
-		
+        std::cout << "sus " << sus << "rem " << rem << "infe " << inf<<std::endl;
             plot(Y);
             title("infected people");
             xlabel("t (days)");
@@ -190,8 +231,12 @@ int main() {
 //#ifndef _WIN32
 //    legend({ "s", "r", "i" });
 //#endif
+        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+        std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+        std::cout << std::endl<<"It took  " << time_span.count() << " seconds."<<std::endl;
         show();
     }
+    
     return 0;
 }
 
