@@ -204,12 +204,14 @@ int main() {
             { uppsala_susp, uppsala_remo, uppsala_infe },
             { sthlm_susp, sthlm_remo, sthlm_infe }
         };
-
+        
+        std::vector<std::string> community_names = { "Uppsala", "Stockholm"};
+        
         for (int i = 0; i < plot_data.size(); i++) {
             auto f = figure();
             auto ax = f->current_axes();
             plot(ax, plot_data[i]);
-            title(ax, "Community " + std::to_string(i+1));
+            title(ax, community_names[i]);
             xlabel(ax, "t (days)");
             ylabel(ax, "population");
 #ifndef _WIN32
