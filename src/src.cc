@@ -7,14 +7,21 @@
 #include <random>
 #include <matplot/matplot.h>
 #include <numeric>
+#include <cmath>
+#include <chrono>
+#include <tuple>
+#include <algorithm>
 
-#define INFECTION_RADIUS 1
-#define RECOVERY_RATE 5
+#define INFECTION_RADIUS 50
+#define RECOVERY_RATE 14
 #define INFECTION_PROBABILITY 25
-#define DIM 10
-#define MAX_TIME 10
-#define STARTER_AGENTS 1
-
+#define DIM 1000
+#define MAX_TIME 140
+#define STARTER_AGENTS 4
+#define QUARANTINE 5
+#define Q_FLAG false
+#define LAMBDA 2.5
+#define ONE_CHANCE false
 // Defines a type of agent, by its infection radius and how often it should occur.
 struct agent_type {
     float radius_mean;
@@ -102,7 +109,7 @@ void swap(board& previous, board& current, int idx) {
     previous.agents[idx] = swap_agent;
 }
 
-void step(board& previous, board& current, std::mt19937_64 gen) {
+void step(board& previous, board& current, std::mt19937_64 gen, std::atomic_int& rem, std::atomic_int& inf, int t) {
 #ifdef _WIN32
 #pragma omp parallel for
 #else
@@ -110,48 +117,114 @@ void step(board& previous, board& current, std::mt19937_64 gen) {
 #endif
     for (int y = 0; y < DIM; y++) {
         for (int x = 0; x < DIM; x++) {
-
-            //{ Update agent
             agent& self = previous.agents[y * DIM + x];
             agent& currentSelf = current.agents[y * DIM + x];
             if (self.status == I) { //The infected checks for susceptible neighbors within the box.
                 currentSelf.recovery_rate--;
                 if (currentSelf.recovery_rate == 0) {
                     currentSelf.status = R;
-                    //rem++;
-                    //inf--;
+                    rem++;
+                    inf--;
                     continue;
                 }
-                //{ Check neighbours
-                for (int y_box = -self.infection_radius; y_box <= self.infection_radius; y_box++) {
-                    for (int x_box = -self.infection_radius; x_box <= self.infection_radius; x_box++) {
-                        int y_other = y + y_box;
-                        int x_other = x + x_box;
-                        if (y_other < 0 || y_other >= DIM) { //Checks for Bounds
-                            break;
-                        }
-                        else if (x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) {
-                            continue;
-                        }
+                int rad = self.infection_radius;
+                if (t >= QUARANTINE && Q_FLAG) {
+                    rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE))) / LAMBDA));
+                    //std::cout << "current radious is " << rad << std::endl;
 
-                        agent& other = previous.agents[y_other * DIM + x_other];
-                        agent& otherCurr = current.agents[y_other * DIM + x_other];
-                        if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
-                            std::uniform_int_distribution<int> dis2(0, 100);
-                            int prob = dis2(gen);
-                            //int prob = std::rand() % 100;
-                            if (prob <= INFECTION_PROBABILITY) {
-                                otherCurr.status = I;
-                                //inf++;
+                }
+                if (rad <= 0) {
+                    continue;
+                }
+
+                if (ONE_CHANCE) {
+                    //std::random_device rd;
+                    //std::mt19937_64 gen(rd());
+                    //std::uniform_int_distribution<int> dis(-rad, rad);
+
+                    std::vector<std::tuple<int, int>> checked;
+                    for (int y_box = -rad; y_box <= rad; y_box++) {
+                        for (int x_box = -rad; x_box <= rad; x_box++) {
+                            int y_other = y + y_box;
+                            int x_other = x + x_box;
+                            if (y_other < 0 || y_other >= DIM) { //Checks for Bounds
+                                break;
+                            }
+                            else if (x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) {
+                                continue;
+                            }
+                            agent& other = previous.agents[y_other * DIM + x_other];
+                            if (other.status == S) {
+                                checked.push_back(std::make_tuple(x_other, y_other));
                             }
                         }
                     }
 
-                }
-                //}
-            }
-            //}
+                Repeat:
+                    int size = checked.size();
+                    std::uniform_int_distribution<int> dis3(0, size - 1);
+                    int rand_S = dis3(gen);
+                    if (size <= 0) {
+                        continue;
+                    }
+                    int y_other = std::get<1>(checked.at(rand_S));
+                    int x_other = std::get<0>(checked.at(rand_S));
+                    agent& other = previous.agents[y_other * DIM + x_other];
+                    agent& otherCurr = current.agents[y_other * DIM + x_other];
 
+                    if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
+                        //int prob = std::rand() % 100;
+                        std::uniform_int_distribution<int> dis2(0, 100);
+                        int prob = dis2(gen);
+                        if (prob <= INFECTION_PROBABILITY) {
+                            otherCurr.status = I;
+                            inf++;
+                        }
+
+                    } 
+
+                    else {
+
+                        checked.erase(checked.begin() + rand_S);
+
+                        if (checked.size() == 0) { continue; }
+
+                        goto Repeat;
+
+                    }
+
+                } 
+                else { // Doesnt care if target can be infected or not.
+                    //{ Update agent
+                    std::uniform_int_distribution<int> dis(-rad, rad);
+                Repeating:
+                    int x_rand = dis(gen);
+                    int y_rand = dis(gen);
+                    int y_other = y_rand + y;
+                    int x_other = x_rand + x;
+                            if (y_other < 0 || y_other >= DIM || x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) { //Checks for Bounds
+                                goto Repeating; //Repeat failures
+                                //continue; //Skip failures
+                            }
+     
+                    agent& other = previous.agents[y_other * DIM + x_other];
+                    agent& otherCurr = current.agents[y_other * DIM + x_other];
+                    if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
+                        
+                        std::uniform_int_distribution<int> dis2(0, 100);
+                        int prob = dis2(gen);
+                        if (prob <= INFECTION_PROBABILITY) {
+                            otherCurr.status = I;
+                            inf++;
+                        }
+
+                    }
+
+                    
+                        
+                    
+                }
+            }
         }
     }
     previous = current;
@@ -167,7 +240,7 @@ int main() {
     DIM,
     std::vector<agent>(DIM*DIM)
     };
-
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     std::random_device rd;
     std::mt19937_64 gen(rd());
     std::uniform_int_distribution<int> dis(0, (DIM*DIM-1));
@@ -187,9 +260,9 @@ int main() {
 
     board uppsala_curr = uppsala_prev;
     board sthlm_curr = sthlm_prev;
-	std::atomic_int sus = DIM*DIM-1;
+	std::atomic_int sus = DIM*DIM-4;
 	std::atomic_int rem = 0;
-	std::atomic_int inf = 1;
+	std::atomic_int inf = 4;
 	std::vector<double> susp = {};
     std::vector<double> infe = {};
     std::vector<double> remo = {};
@@ -197,8 +270,8 @@ int main() {
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking time
         // TODO: optimize
-        step(uppsala_prev, uppsala_curr, gen);
-        step(sthlm_prev, sthlm_curr, gen);
+        step(uppsala_prev, uppsala_curr, gen,rem,inf,t);
+        //step(sthlm_prev, sthlm_curr, gen,rem,inf);
 
         /*if(t % 10 == 0) {
             std::cout << std::endl << "---- t: " << t;
@@ -209,14 +282,19 @@ int main() {
         //remo.push_back(rem);
         //infe.push_back(inf);
 
-        std::cout <<  std::endl <<"TImestep : " << t << std::endl;
-        std::cout << std::endl << " ----Uppsala---- " << std::endl;
+        //std::cout <<  std::endl <<"TImestep : " << t << std::endl;
+        //std::cout << std::endl << " ----Uppsala---- " << std::endl;
         //std::cout << "seeded: " << seeded;
-        print_board(uppsala_prev);
-        std::cout << std::endl << "----- Sthlm----" << std::endl;
-        print_board(sthlm_prev);
-        std::cout << std::endl << "<-------------------------------------------------->" << std::endl << std::endl;
-	} // /for t
+        //print_board(uppsala_prev);
+        //std::cout << std::endl << "----- Sthlm----" << std::endl;
+        //print_board(sthlm_prev);
+        //std::cout << std::endl << "<-------------------------------------------------->" << std::endl << std::endl;
+        sus = DIM * DIM - rem - inf;
+       // std::cout << "printing sus: " << sus << " Printing Rem: " << rem << " Printing inf: " << inf << std::endl;
+        susp.push_back(sus);
+        remo.push_back(rem);
+        infe.push_back(inf);
+    } // /for t
 	{
         using namespace matplot;
 
@@ -225,10 +303,13 @@ int main() {
         title("infected people");
         xlabel("t (days)");
         ylabel("population");
-#ifndef _WIN32
+/*#ifndef _WIN32
         legend({"s", "r", "i"});
 #endif
-
+*/
+        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+        std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+        std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;
         show();
     }
     return 0;
