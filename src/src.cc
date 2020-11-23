@@ -62,16 +62,30 @@ void print_board(board& b){
     }
 }
 
-board generate_board() {
+/**
+ * Generates a new board from the model parameters
+ * @param nStarterAgents The number of initially infected agents
+ * @returns A new board
+ */
+board generate_board(unsigned int nStarterAgents) {
     board b = {
         DIM,
         std::vector<agent>(DIM*DIM)
     };
-    // set initial infections
-    //for (int i = 0; i < n_patient_zero; i++) {
-    //    int pz = std::rand() % dim*dim;
-    //    b.agents[pz].status = i;
-    //}
+    std::default_random_engine rand_generator;
+
+    // Generate initial infections
+    std::uniform_int_distribution<int> dis(0, (DIM*DIM-1));
+    int seeded = 0;
+    while (seeded != nStarterAgents) {
+        int pz = dis(rand_generator);
+        if (b.agents[pz].status != I) {
+            b.agents[pz].status = I;
+            std::cout << "pz is: " << pz << std::endl;
+            seeded++;
+        }
+
+    }
 
     // Get the sum of all type weights
     double weight_sum = 0.0f;
@@ -81,7 +95,6 @@ board generate_board() {
     }
 
     // Randomize an agent type for every agent, then generate and assign a radius using that type
-    std::default_random_engine rand_generator;
     std::uniform_real_distribution type_dist(0.0, weight_sum);
     for(auto& agent : b.agents) {
         double type_val = type_dist(rand_generator);
@@ -203,26 +216,27 @@ void step(board& previous, board& current, std::mt19937_64 gen, std::atomic_int&
                     int y_other = y_rand + y;
                     int x_other = x_rand + x;
                             if (y_other < 0 || y_other >= DIM || x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) { //Checks for Bounds
-                                goto Repeating; //Repeat failures
+                        goto Repeating; //Repeat failures
                                 //continue; //Skip failures
-                            }
-     
+                    }
+
                     agent& other = previous.agents[y_other * DIM + x_other];
                     agent& otherCurr = current.agents[y_other * DIM + x_other];
                     if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
-                        
-                        std::uniform_int_distribution<int> dis2(0, 100);
+
+                        std::uniform_int_distribution<int> dis2(0, 99);
                         int prob = dis2(gen);
-                        if (prob <= INFECTION_PROBABILITY) {
+                        if (prob < INFECTION_PROBABILITY) {
+                            // std::cout << "Infected" << std::endl;
                             otherCurr.status = I;
                             inf++;
                         }
 
                     }
 
-                    
-                        
-                    
+
+
+
                 }
             }
         }
@@ -232,31 +246,11 @@ void step(board& previous, board& current, std::mt19937_64 gen, std::atomic_int&
 
 
 int main() {
-    board uppsala_prev= {
-        DIM,
-        std::vector<agent>(DIM*DIM)
-    };
-    board sthlm_prev = {
-    DIM,
-    std::vector<agent>(DIM*DIM)
-    };
+    board uppsala_prev = generate_board(STARTER_AGENTS);
+    board sthlm_prev = generate_board(STARTER_AGENTS);
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     std::random_device rd;
     std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<int> dis(0, (DIM*DIM-1));
-
-    int seeded = 0;
-    // Func to spawn starter infecitous agents
-    while (seeded != STARTER_AGENTS) {
-        int pz = dis(gen);
-        if (uppsala_prev.agents[pz].status != I) {
-            uppsala_prev.agents[pz].status = I;
-            std::cout << "pz is: " << pz;
-            seeded++;
-        }
-
-    }
-
 
     board uppsala_curr = uppsala_prev;
     board sthlm_curr = sthlm_prev;
