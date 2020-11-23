@@ -1,3 +1,5 @@
+#include "types.hh"
+#include "parameters.hh"
 #include <vector>
 #include <omp.h>
 #include <cstdlib>
@@ -12,46 +14,6 @@
 #include <tuple>
 #include <algorithm>
 
-#define INFECTION_RADIUS 50
-#define RECOVERY_RATE 14
-#define INFECTION_PROBABILITY 25
-#define DIM 1000
-#define MAX_TIME 140
-#define STARTER_AGENTS 4
-#define QUARANTINE 5
-#define Q_FLAG false
-#define LAMBDA 2.5
-#define ONE_CHANCE false
-// Defines a type of agent, by its infection radius and how often it should occur.
-struct agent_type {
-    float radius_mean;
-    float radius_stddev;
-    double weight;
-};
-
-static const std::vector<agent_type> agent_types = {
-    agent_type{ 50, 0, 1 }
-};
-
-enum agent_status {
-        S, I, R
-};
-
-struct agent {
-    agent_status status = S;
-    int infection_radius = INFECTION_RADIUS;
-    float infection_probability = INFECTION_PROBABILITY;
-    //int social_distancing;
-    //bool inQuarantine;
-    //bool showingSymptoms;
-    int recovery_rate = RECOVERY_RATE;
-};
-
-struct board {
-    unsigned int dim = DIM;
-    std::vector<agent> agents;
-};
-
 void print_board(board& b){
     //const std::string status[3] = { "S", "I", "R" };
     for(int i = 0; i < DIM*DIM; i++){
@@ -62,59 +24,6 @@ void print_board(board& b){
     }
 }
 
-/**
- * Generates a new board from the model parameters
- * @param nStarterAgents The number of initially infected agents
- * @returns A new board
- */
-board generate_board(unsigned int nStarterAgents) {
-    board b = {
-        DIM,
-        std::vector<agent>(DIM*DIM)
-    };
-    std::default_random_engine rand_generator;
-
-    // Generate initial infections
-    std::uniform_int_distribution<int> dis(0, (DIM*DIM-1));
-    int seeded = 0;
-    while (seeded != nStarterAgents) {
-        int pz = dis(rand_generator);
-        if (b.agents[pz].status != I) {
-            b.agents[pz].status = I;
-            std::cout << "pz is: " << pz << std::endl;
-            seeded++;
-        }
-
-    }
-
-    // Get the sum of all type weights
-    double weight_sum = 0.0f;
-    for (int i = 0; i < agent_types.size(); i++) {
-        auto& type = agent_types[i];
-        weight_sum += type.weight;
-    }
-
-    // Randomize an agent type for every agent, then generate and assign a radius using that type
-    std::uniform_real_distribution type_dist(0.0, weight_sum);
-    for(auto& agent : b.agents) {
-        double type_val = type_dist(rand_generator);
-        double cumulative_weight = 0.0f;
-        for (int i = 0; i < agent_types.size(); i++) {
-            auto& type = agent_types[i];
-            if (cumulative_weight + type.weight >= type_val) {
-                if (type.radius_stddev == 0) {  // Uses a fixed radius for agents of this type
-                    agent.infection_radius = type.radius_mean;
-                } else {  // Generates a radius from a normal distribution
-                    agent.infection_radius = std::normal_distribution<float>(type.radius_mean, type.radius_stddev)(rand_generator);
-                }
-                break;
-            }
-            cumulative_weight += type.weight;
-        }
-    }
-    return b;
-}
-
 //          move(uppsala_prev, sthlm_prev, 0);
 void swap(board& previous, board& current, int idx) {
     agent swap_agent = current.agents[idx];
@@ -122,7 +31,7 @@ void swap(board& previous, board& current, int idx) {
     previous.agents[idx] = swap_agent;
 }
 
-void step(board& previous, board& current, std::mt19937_64 gen, std::atomic_int& rem, std::atomic_int& inf, int t) {
+void step(board& previous, board& current, std::mt19937_64 gen, int t) {
 #ifdef _WIN32
 #pragma omp parallel for
 #else
@@ -136,8 +45,8 @@ void step(board& previous, board& current, std::mt19937_64 gen, std::atomic_int&
                 currentSelf.recovery_rate--;
                 if (currentSelf.recovery_rate == 0) {
                     currentSelf.status = R;
-                    rem++;
-                    inf--;
+                    current.rem++;
+                    current.inf--;
                     continue;
                 }
                 int rad = self.infection_radius;
@@ -151,10 +60,6 @@ void step(board& previous, board& current, std::mt19937_64 gen, std::atomic_int&
                 }
 
                 if (ONE_CHANCE) {
-                    //std::random_device rd;
-                    //std::mt19937_64 gen(rd());
-                    //std::uniform_int_distribution<int> dis(-rad, rad);
-
                     std::vector<std::tuple<int, int>> checked;
                     for (int y_box = -rad; y_box <= rad; y_box++) {
                         for (int x_box = -rad; x_box <= rad; x_box++) {
@@ -191,10 +96,10 @@ void step(board& previous, board& current, std::mt19937_64 gen, std::atomic_int&
                         int prob = dis2(gen);
                         if (prob <= INFECTION_PROBABILITY) {
                             otherCurr.status = I;
-                            inf++;
+                            current.inf++;
                         }
 
-                    } 
+                    }
 
                     else {
 
@@ -206,7 +111,7 @@ void step(board& previous, board& current, std::mt19937_64 gen, std::atomic_int&
 
                     }
 
-                } 
+                }
                 else { // Doesnt care if target can be infected or not.
                     //{ Update agent
                     std::uniform_int_distribution<int> dis(-rad, rad);
@@ -229,7 +134,7 @@ void step(board& previous, board& current, std::mt19937_64 gen, std::atomic_int&
                         if (prob < INFECTION_PROBABILITY) {
                             // std::cout << "Infected" << std::endl;
                             otherCurr.status = I;
-                            inf++;
+                            current.inf++;
                         }
 
                     }
@@ -241,13 +146,14 @@ void step(board& previous, board& current, std::mt19937_64 gen, std::atomic_int&
             }
         }
     }
+    current.sus = current.dim * current.dim - current.rem - current.inf;
     previous = current;
 }
 
 
 int main() {
-    board uppsala_prev = generate_board(STARTER_AGENTS);
-    board sthlm_prev = generate_board(STARTER_AGENTS);
+    board uppsala_prev(DIM, STARTER_AGENTS, AGENT_TYPES);
+    board sthlm_prev(DIM, STARTER_AGENTS, AGENT_TYPES);
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     std::random_device rd;
     std::mt19937_64 gen(rd());
@@ -264,7 +170,7 @@ int main() {
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking time
         // TODO: optimize
-        step(uppsala_prev, uppsala_curr, gen,rem,inf,t);
+        step(uppsala_prev, uppsala_curr, gen, t);
         //step(sthlm_prev, sthlm_curr, gen,rem,inf);
 
         /*if(t % 10 == 0) {
@@ -297,10 +203,10 @@ int main() {
         title("infected people");
         xlabel("t (days)");
         ylabel("population");
-/*#ifndef _WIN32
+#ifndef _WIN32
         legend({"s", "r", "i"});
 #endif
-*/
+
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
         std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;
