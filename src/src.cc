@@ -160,12 +160,12 @@ int main() {
 
     board uppsala_curr = uppsala_prev;
     board sthlm_curr = sthlm_prev;
-	std::atomic_int sus = DIM*DIM-4;
-	std::atomic_int rem = 0;
-	std::atomic_int inf = 4;
-	std::vector<double> susp = {};
-    std::vector<double> infe = {};
-    std::vector<double> remo = {};
+	std::vector<double> uppsala_susp = {};
+    std::vector<double> uppsala_infe = {};
+    std::vector<double> uppsala_remo = {};
+	std::vector<double> sthlm_susp = {};
+    std::vector<double> sthlm_infe = {};
+    std::vector<double> sthlm_remo = {};
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking time
@@ -189,28 +189,39 @@ int main() {
         //std::cout << std::endl << "----- Sthlm----" << std::endl;
         //print_board(sthlm_prev);
         //std::cout << std::endl << "<-------------------------------------------------->" << std::endl << std::endl;
-        sus = DIM * DIM - rem - inf;
        // std::cout << "printing sus: " << sus << " Printing Rem: " << rem << " Printing inf: " << inf << std::endl;
-        susp.push_back(sus);
-        remo.push_back(rem);
-        infe.push_back(inf);
+        uppsala_susp.push_back(uppsala_curr.sus);
+        uppsala_remo.push_back(uppsala_curr.inf);
+        uppsala_infe.push_back(uppsala_curr.rem);
+        sthlm_susp.push_back(sthlm_curr.sus);
+        sthlm_remo.push_back(sthlm_curr.inf);
+        sthlm_infe.push_back(sthlm_curr.rem);
     } // /for t
 	{
         using namespace matplot;
 
-		std::vector<std::vector<double>> Y = {susp, remo, infe};
-        plot(Y);
-        title("infected people");
-        xlabel("t (days)");
-        ylabel("population");
+        std::vector<std::vector<std::vector<double>>> plot_data{
+            { uppsala_susp, uppsala_remo, uppsala_infe },
+            { sthlm_susp, sthlm_remo, sthlm_infe }
+        };
+
+        for (int i = 0; i < plot_data.size(); i++) {
+            auto f = figure();
+            auto ax = f->current_axes();
+            plot(ax, plot_data[i]);
+            title(ax, "Community " + std::to_string(i+1));
+            xlabel(ax, "t (days)");
+            ylabel(ax, "population");
 #ifndef _WIN32
-        legend({"s", "r", "i"});
+            legend(ax, {"s", "r", "i"});
 #endif
+        }
 
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
         std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;
-        show();
     }
+    std::cout << "Press Enter to exit..." << std::endl;
+    std::cin.get();
     return 0;
 }
