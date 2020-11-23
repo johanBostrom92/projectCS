@@ -174,7 +174,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, std::atomic_int
 
                     if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
                         //int prob = std::rand() % 100;
-                        std::uniform_int_distribution<int> dis2(0, 100);
+                        std::uniform_int_distribution<int> dis2(1, 100);
                         int prob = dis2(gen);
                         if (prob <= INFECTION_PROBABILITY) {
                             otherCurr.status = I;
@@ -211,7 +211,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, std::atomic_int
                     agent& otherCurr = current.agents[y_other * DIM + x_other];
                     if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
                         
-                        std::uniform_int_distribution<int> dis2(0, 100);
+                        std::uniform_int_distribution<int> dis2(1, 100);
                         int prob = dis2(gen);
                         if (prob <= INFECTION_PROBABILITY) {
                             otherCurr.status = I;
