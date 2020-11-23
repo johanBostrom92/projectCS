@@ -20,7 +20,7 @@ void print_board(board& b){
         if(i % DIM == 0){
             std::endl (std::cout);
         }
-            std::cout << b.agents[i].status << " ";
+        std::cout << b.agents[i].status << " ";
     }
 }
 
@@ -31,7 +31,7 @@ void swap(board& previous, board& current, int idx) {
     previous.agents[idx] = swap_agent;
 }
 
-void step(board& previous, board& current, std::mt19937_64 gen, int t) {
+void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 #ifdef _WIN32
 #pragma omp parallel for
 #else
@@ -92,9 +92,9 @@ void step(board& previous, board& current, std::mt19937_64 gen, int t) {
 
                     if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
                         //int prob = std::rand() % 100;
-                        std::uniform_int_distribution<int> dis2(0, 100);
+                        std::uniform_int_distribution<int> dis2(0, 99);
                         int prob = dis2(gen);
-                        if (prob <= INFECTION_PROBABILITY) {
+                        if (prob < INFECTION_PROBABILITY) {
                             otherCurr.status = I;
                             current.inf++;
                         }

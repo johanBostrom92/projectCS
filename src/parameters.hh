@@ -11,7 +11,7 @@
 #define QUARANTINE 5
 #define Q_FLAG false
 #define LAMBDA 2.5
-#define ONE_CHANCE false
+#define ONE_CHANCE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 
 /**
  * Defines a type of agent, by its infection radius and how often it should occur.
