@@ -109,7 +109,7 @@ void swap(board& previous, board& current, int idx) {
     previous.agents[idx] = swap_agent;
 }
 
-void step(board& previous, board& current, std::mt19937_64 gen, std::atomic_int& rem, std::atomic_int& inf, int t) {
+void step(board& previous, board& current, std::mt19937_64& gen, std::atomic_int& rem, std::atomic_int& inf, int t) {
 #ifdef _WIN32
 #pragma omp parallel for
 #else
