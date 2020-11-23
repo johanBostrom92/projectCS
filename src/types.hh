@@ -4,7 +4,7 @@
 #include <atomic>
 
 enum agent_status {
-        S, I, R
+    S, I, R
 };
 
 /**
@@ -23,9 +23,9 @@ struct agent {
 struct board {
     unsigned int dim = DIM;
     std::vector<agent> agents;
-	std::atomic_int sus;
-	std::atomic_int rem;
-	std::atomic_int inf;
+    std::atomic_int sus;
+    std::atomic_int rem;
+    std::atomic_int inf;
 
     /**
      * Creates a new square board
@@ -37,8 +37,8 @@ struct board {
 
     // std::atomic deletes these, so we need to redefine them.
     // Note that these are not atomic
-    board(const board&);
-    board(board&&);
-    board& operator=(const board&);
-    board& operator=(board&&);
+    board(const board &);
+    board(board &&);
+    board &operator=(const board &);
+    board &operator=(board &&);
 };

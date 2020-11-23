@@ -160,10 +160,10 @@ int main() {
 
     board uppsala_curr = uppsala_prev;
     board sthlm_curr = sthlm_prev;
-	std::vector<double> uppsala_susp = {};
+    std::vector<double> uppsala_susp = {};
     std::vector<double> uppsala_infe = {};
     std::vector<double> uppsala_remo = {};
-	std::vector<double> sthlm_susp = {};
+    std::vector<double> sthlm_susp = {};
     std::vector<double> sthlm_infe = {};
     std::vector<double> sthlm_remo = {};
 
@@ -197,7 +197,7 @@ int main() {
         sthlm_remo.push_back(sthlm_curr.inf);
         sthlm_infe.push_back(sthlm_curr.rem);
     } // /for t
-	{
+    {
         using namespace matplot;
 
         std::vector<std::vector<std::vector<double>>> plot_data{
