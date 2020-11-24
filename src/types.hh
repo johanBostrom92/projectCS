@@ -4,7 +4,7 @@
 #include <atomic>
 
 enum agent_status {
-    S, I, R
+    S, A, I, R
 };
 
 /**

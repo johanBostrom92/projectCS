@@ -15,7 +15,7 @@
 #include <algorithm>
 
 void print_board(board& b){
-    //const std::string status[3] = { "S", "I", "R" };
+    //const std::string status[4] = { "S", "A", "I", "R" };
     for(int i = 0; i < DIM*DIM; i++){
         if(i % DIM == 0){
             std::endl (std::cout);
@@ -31,6 +31,28 @@ void swap(board& previous, board& current, int idx) {
     previous.agents[idx] = swap_agent;
 }
 
+void infect(agent& self, agent& to_infect, std::mt19937_64& gen, std::atomic_int& inf) {
+    std::uniform_int_distribution<int> dis2(0, 99);
+    int infect_prob;
+    if (self.status == I) {
+        infect_prob = self.infection_probability;
+    }
+    else {
+        infect_prob = ASYM_INF_PROB;
+    }
+    int prob = dis2(gen);
+    if (prob < infect_prob) {
+        int prob2 = dis2(gen);
+        if (prob2 < MAKE_ASYM) {
+            to_infect.status = A;
+        }
+        else {
+            to_infect.status = I;
+            inf++;
+        }
+    }
+}
+
 void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 #ifdef _WIN32
 #pragma omp parallel for
@@ -41,12 +63,15 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
         for (int x = 0; x < DIM; x++) {
             agent& self = previous.agents[y * DIM + x];
             agent& currentSelf = current.agents[y * DIM + x];
-            if (self.status == I) { //The infected checks for susceptible neighbors within the box.
+            if (self.status == I || self.status == A) { //The infected checks for susceptible neighbors within the box.
                 currentSelf.recovery_rate--;
                 if (currentSelf.recovery_rate == 0) {
+                    if (self.status == I) {//Infected only decreased if carrier was not asymptomatic
+                        current.inf--;
+                    }
                     currentSelf.status = R;
                     current.rem++;
-                    current.inf--;
+
                     continue;
                 }
                 int rad = self.infection_radius;
@@ -90,16 +115,11 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     agent& other = previous.agents[y_other * DIM + x_other];
                     agent& otherCurr = current.agents[y_other * DIM + x_other];
 
-                    if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
+                    if (other.status == S && otherCurr.status != I && otherCurr.status != A) { //If neighbour is susceptible
                         //int prob = std::rand() % 100;
-                        std::uniform_int_distribution<int> dis2(0, 99);
-                        int prob = dis2(gen);
-                        if (prob < INFECTION_PROBABILITY) {
-                            otherCurr.status = I;
-                            current.inf++;
-                        }
+                        infect(self, otherCurr, gen, current.inf);
+                    } 
 
-                    }
 
                     else {
 
@@ -127,16 +147,8 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 
                     agent& other = previous.agents[y_other * DIM + x_other];
                     agent& otherCurr = current.agents[y_other * DIM + x_other];
-                    if (other.status == S && otherCurr.status != I) { //If neighbour is susceptible
-
-                        std::uniform_int_distribution<int> dis2(0, 99);
-                        int prob = dis2(gen);
-                        if (prob < INFECTION_PROBABILITY) {
-                            // std::cout << "Infected" << std::endl;
-                            otherCurr.status = I;
-                            current.inf++;
-                        }
-
+                    if (other.status == S && otherCurr.status != I && otherCurr.status != A) { //If neighbour is susceptible
+                        infect(self, otherCurr, gen, current.inf);
                     }
 
 
@@ -160,6 +172,7 @@ int main() {
 
     board uppsala_curr = uppsala_prev;
     board sthlm_curr = sthlm_prev;
+
     std::vector<double> uppsala_susp = {};
     std::vector<double> uppsala_infe = {};
     std::vector<double> uppsala_remo = {};
@@ -182,7 +195,7 @@ int main() {
         //remo.push_back(rem);
         //infe.push_back(inf);
 
-        //std::cout <<  std::endl <<"TImestep : " << t << std::endl;
+        //std::cout <<  std::endl <<"Timestep : " << t << std::endl;
         //std::cout << std::endl << " ----Uppsala---- " << std::endl;
         //std::cout << "seeded: " << seeded;
         //print_board(uppsala_prev);
