@@ -32,7 +32,7 @@ void swap(board& previous, board& current, int idx) {
 }
 
 void infect(agent& self, agent& to_infect, std::mt19937_64& gen, std::atomic_int& inf) {
-    std::uniform_int_distribution<int> dis2(1, 100);
+    std::uniform_int_distribution<int> dis2(0, 99);
     int infect_prob;
     if (self.status == I) {
         infect_prob = self.infection_probability;
@@ -41,9 +41,9 @@ void infect(agent& self, agent& to_infect, std::mt19937_64& gen, std::atomic_int
         infect_prob = ASYM_INF_PROB;
     }
     int prob = dis2(gen);
-    if (prob <= infect_prob) {
+    if (prob < infect_prob) {
         int prob2 = dis2(gen);
-        if (prob2 <= MAKE_ASYM) {
+        if (prob2 < MAKE_ASYM) {
             to_infect.status = A;
         }
         else {
