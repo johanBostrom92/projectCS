@@ -2,14 +2,16 @@
 #include <vector>
 
 // TODO: add some descriptions
-#define INFECTION_RADIUS 50
-#define RECOVERY_RATE 14
+#define INFECTION_RADIUS 2
+#define RECOVERY_RATE 5
 #define INFECTION_PROBABILITY 25
 #define MAKE_ASYM 50 //The probability that an infected individual is asymptomatic
 #define ASYM_INF_PROB 10 //The probability for asymptomatic carriers to infect others
-#define DIM 1000
-#define MAX_TIME 140
-#define STARTER_AGENTS 4
+#define VACCINATION_RATE 28
+#define VACCINATION_EFFICACY 75
+#define DIM 7
+#define MAX_TIME 10
+#define STARTER_AGENTS 1
 #define QUARANTINE 5
 #define Q_FLAG false
 #define LAMBDA 2.5
