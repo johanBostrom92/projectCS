@@ -238,24 +238,26 @@ int main() {
 
     } // /for t
     {
-//        using namespace matplot;
-//
-//        std::vector<std::vector<std::vector<double>>> plot_data{
-//            { uppsala_susp, uppsala_remo, uppsala_infe },
-//            { sthlm_susp, sthlm_remo, sthlm_infe }
-//        };
-//
-//        for (int i = 0; i < plot_data.size(); i++) {
-//            auto f = figure();
-//            auto ax = f->current_axes();
-//            plot(ax, plot_data[i]);
-//            title(ax, "community " + std::to_string(i+1));
-//            xlabel(ax, "t (days)");
-//            ylabel(ax, "population");
-//#ifndef _win32
-//            legend(ax, {"s", "r", "i"});
-//#endif
-//        }
+        using namespace matplot;
+
+        std::vector<std::vector<std::vector<double>>> plot_data{
+            { uppsala_susp, uppsala_remo, uppsala_infe },
+            { sthlm_susp, sthlm_remo, sthlm_infe }
+        };
+
+        std::vector<std::string> comm_names = { "Uppsala", "Stockholm" };
+
+        for (int i = 0; i < plot_data.size(); i++) {
+            auto f = figure();
+            auto ax = f->current_axes();
+            plot(ax, plot_data[i]);
+            title(ax, comm_names[i]);
+            xlabel(ax, "t (days)");
+            ylabel(ax, "population");
+#ifndef _win32
+            legend(ax, {"s", "r", "i"});
+#endif
+        }
 
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
