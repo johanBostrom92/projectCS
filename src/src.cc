@@ -108,16 +108,15 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     continue;
                 }
                 int rad = self.infection_radius;
-                if (t >= QUARANTINE && Q_FLAG) {
-                    rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE))) / LAMBDA));
-                    //std::cout << "current radious is " << rad << std::endl;
+                if (t >= QUARANTINE_START && ENABLE_QUARANTINE) {
+                    rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE_START))) / LAMBDA));
 
                 }
                 if (rad <= 0) {
                     continue;
                 }
 
-                if (ONE_CHANCE) {
+                if (ONLY_ELIGIBLE) {
                     std::vector<std::tuple<int, int>> checked;
                     for (int y_box = -rad; y_box <= rad; y_box++) {
                         for (int x_box = -rad; x_box <= rad; x_box++) {
@@ -149,7 +148,6 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     agent& otherCurr = current.agents[y_other * DIM + x_other];
 
                     if (other.status == S && otherCurr.status != I && otherCurr.status != A && otherCurr.status != V) { //If neighbour is susceptible
-                        //int prob = std::rand() % 100;
                         infect(self, otherCurr, gen, current);
                     } 
 
@@ -223,7 +221,7 @@ int main() {
 
 
         step(uppsala_prev, uppsala_curr, gen, t);
-        //step(sthlm_prev, sthlm_curr, gen,rem,inf);
+        //step(sthlm_prev, sthlm_curr, gen, t);
         print_board(uppsala_prev, "Uppsala", t);
         uppsala_susp.push_back(uppsala_curr.sus);
         uppsala_remo.push_back(uppsala_curr.inf);
@@ -254,7 +252,7 @@ int main() {
             title(ax, comm_names[i]);
             xlabel(ax, "t (days)");
             ylabel(ax, "population");
-#ifndef _win32
+#ifndef _WIN32
             legend(ax, {"s", "r", "i"});
 #endif
         }

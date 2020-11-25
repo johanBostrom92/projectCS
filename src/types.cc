@@ -6,7 +6,9 @@ board::board(unsigned int dim, unsigned int initial_infections, const std::vecto
     agents(dim*dim),
     sus(dim*dim - initial_infections),
     rem(0),
-    inf(initial_infections) {
+    inf(initial_infections),
+    asymp(0),
+    vacc(0){
 
     std::default_random_engine rand_generator;
 
@@ -66,6 +68,8 @@ board& board::operator=(board&& other) {
         this->sus = other.sus.load();
         this->rem = other.rem.load();
         this->inf = other.inf.load();
+        this->asymp = other.asymp.load();
+        this->vacc = other.vacc.load();
     }
     return *this;
 }
@@ -78,6 +82,8 @@ board& board::operator=(const board& other) {
         this->sus = other.sus.load();
         this->rem = other.rem.load();
         this->inf = other.inf.load();
+        this->asymp = other.asymp.load();
+        this->vacc = other.vacc.load();
     }
     return *this;
 }

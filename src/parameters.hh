@@ -12,10 +12,10 @@
 #define DIM 7
 #define MAX_TIME 10
 #define STARTER_AGENTS 1
-#define QUARANTINE 5
-#define Q_FLAG false
+#define QUARANTINE_START 5
+#define ENABLE_QUARANTINE false
 #define LAMBDA 2.5
-#define ONE_CHANCE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
+#define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 
 /**
  * Defines a type of agent, by its infection radius and how often it should occur.
