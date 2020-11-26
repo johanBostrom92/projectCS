@@ -28,6 +28,7 @@ aux_source_directory("${CMAKE_CURRENT_SOURCE_DIR}/src" PROJECT_SRCS)
 
 # Add include directories
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
+file(GLOB_RECURSE PROJECT_HDRS src/*.hh)
 
 # Specify library base directory
 set(LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib")
@@ -36,7 +37,7 @@ set(LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 set(PROJECT_LIBRARIES)
 
 # Add executable for project
-add_executable(${PROJECT_NAME} ${PROJECT_SRCS})
+add_executable(${PROJECT_NAME} ${PROJECT_SRCS} ${PROJECT_HDRS})
 
 # Link executable to libraries
 target_link_libraries(${PROJECT_NAME} ${PROJECT_LIBRARIES})
