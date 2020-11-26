@@ -1,1 +1,5 @@
 Created first draft for a visualization, by utilizing scatterplot we aim to create a graphical representation.
+
+We have implemented both the asymptomatic and the vaccinated state with their required logic, giving us the complete SAIVR model. 
+We're planning on defining and implementing different vaccination strategies.
+We have a question regarding how vaccination works: In our current implementation the agent has their 'vaccination_time' reset if it fails after the four weeks. We were discussing amongs ourself wether each agent should only receive one chance at vaccination, if they should be allowed to enter again or, as is the case right now, they simply start a new vaccination attempt.
