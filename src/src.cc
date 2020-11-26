@@ -12,16 +12,17 @@
 #include <tuple>
 #include <algorithm>
 
-#define INFECTION_RADIUS 50
-#define RECOVERY_RATE 14
-#define INFECTION_PROBABILITY 25
-#define DIM 1000
-#define MAX_TIME 140
-#define STARTER_AGENTS 4
-#define QUARANTINE 5
+#define INFECTION_RADIUS 2
+#define RECOVERY_RATE 4
+#define INFECTION_PROBABILITY 100
+#define DIM 30
+#define MAX_TIME 10
+#define STARTER_AGENTS 1
+#define QUARANTINE 1
 #define Q_FLAG false
 #define LAMBDA 2.5
 #define ONE_CHANCE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
+#define PLOT false 
 
 // Defines a type of agent, by its infection radius and how often it should occur.
 struct agent_type {
@@ -63,6 +64,75 @@ void print_board(board& b){
     }
 }
 
+void visualization_of_board(board& b){
+    if (PLOT){
+    
+        //Transform array index to X,Y cordinates as col,row
+
+        // X,Y for S
+        std::vector<double> col_s;
+        std::vector<double> row_s;
+
+        // X,Y for I
+        std::vector<double> col_i;
+        std::vector<double> row_i;
+
+        // X,Y for R
+        std::vector<double> col_r;
+        std::vector<double> row_r;
+
+  
+        for(int i = 0; i < DIM*DIM; i++){
+            if (b.agents[i].status == S) {
+                row_s.push_back(i / DIM);
+                col_s.push_back(i % DIM);
+            }
+            else if (b.agents[i].status == I) {
+                row_i.push_back(i / DIM);
+                col_i.push_back(i % DIM);
+            }
+            else if (b.agents[i].status == R) {
+                row_r.push_back(i / DIM);
+                col_r.push_back(i % DIM);
+            }
+            else {
+                std::cout <<  "Error didn't find any match ";
+            }
+
+        }
+        {
+            //scatterplots using matplot++ on converted array -> XY cordinates. 
+            using namespace matplot;
+            
+            int size = 8; //TODO fix dynamical size depending on table DIM size. 
+        
+            //dummy algoritm
+            // set size of graph window
+            //based on DIM calculate amount of circles given a radius 
+            // set size as calculated radius 
+
+            hold(on);
+            if (!col_s.empty()) {
+                auto scat_s = scatter(col_s, row_s, size);
+                scat_s->marker_color({ 0, 0, 0 });
+                scat_s->marker_face_color({ 0.2, 0.4, 0.9 });
+            }
+        
+            if (!col_i.empty()){
+                auto scat_i = scatter(col_i, row_i, size);
+                scat_i->marker_color({ 0, 0, 0 });
+                scat_i->marker_face_color({ 0.9, 0, 0 });
+            }
+        
+            if (!col_r.empty()) {
+                auto scat_r = scatter(col_r, row_r, size);
+                scat_r->marker_color({ 0, 0, 0 });
+                scat_r->marker_face_color({ 0, 0.9, 0 });
+            }
+           show();
+        }
+    }
+}
 board generate_board() {
     board b = {
         DIM,
@@ -269,15 +339,21 @@ int main() {
     std::vector<double> remo = {};
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
-    { //Loop tracking time
+    { //Loop tracking 
+        
+        board uppsala_curr_copy = uppsala_curr; 
+        visualization_of_board(uppsala_curr_copy);
+        
+        
         // TODO: optimize
         step(uppsala_prev, uppsala_curr, gen,rem,inf,t);
         //step(sthlm_prev, sthlm_curr, gen,rem,inf);
 
-        /*if(t % 10 == 0) {
+        if(t % 10 == 0) {
             std::cout << std::endl << "---- t: " << t;
-            print_board(current);
-        }*/
+            print_board(uppsala_curr);
+
+        }
         //sus = DIM * DIM - rem - inf;
         //susp.push_back(sus);
         //remo.push_back(rem);
@@ -295,11 +371,12 @@ int main() {
         susp.push_back(sus);
         remo.push_back(rem);
         infe.push_back(inf);
+
     } // /for t
 	{
         using namespace matplot;
 
-		std::vector<std::vector<double>> Y = {susp, remo, infe};
+        std::vector<std::vector<double>> Y = { susp, remo, infe };
         plot(Y);
         title("infected people");
         xlabel("t (days)");
@@ -312,6 +389,8 @@ int main() {
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
         std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;
         show();
+       
+     
     }
     return 0;
 }
