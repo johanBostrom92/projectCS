@@ -4,7 +4,7 @@
 #include <atomic>
 
 enum agent_status {
-    S, A, I, R
+    S, A, I, V, R
 };
 
 /**
@@ -15,6 +15,9 @@ struct agent {
     int infection_radius = INFECTION_RADIUS;
     float infection_probability = INFECTION_PROBABILITY;
     int recovery_rate = RECOVERY_RATE;
+    bool vaccination_progress = false;
+    int vaccination_rate = VACCINATION_RATE;
+
 };
 
 /**
@@ -26,6 +29,8 @@ struct board {
     std::atomic_int sus;
     std::atomic_int rem;
     std::atomic_int inf;
+    std::atomic_int asymp;
+    std::atomic_int vacc;
 
     /**
      * Creates a new square board
