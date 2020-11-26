@@ -16,15 +16,24 @@
 
 #define PLOT false 
 
-void print_board(board& b){
-    //const std::string status[4] = { "S", "A", "I", "R" };
-    for(int i = 0; i < DIM*DIM; i++){
-        if(i % DIM == 0){
-            std::endl (std::cout);
+
+
+
+void print_board(board& b, std::string name, int t) {
+    std::cout << std::endl << "Susceptible = 0 -- Asymptomatic = 1 -- Infected = 2 -- Vaccinated = 3 -- Recovered = 4 " << std::endl;
+    std::cout << std::endl << "Day: " << t << std::endl;
+    std::cout << std::endl << " ----------" << name << "----------" << std::endl;
+    for (int i = 0; i < DIM * DIM; i++) {
+        if (i % DIM == 0) {
+            std::endl(std::cout);
         }
-        std::cout << b.agents[i].status << " ";
+            std::cout << b.agents[i].status << " ";
+
     }
+    std::cout << std::endl << std::endl << "Susceptible: " << b.sus << std::endl << "Recovered: " << b.rem << std::endl << "Infected: " << b.inf << std::endl << "Asymptomatic: " << b.asymp << std::endl << "Vaccinated: " << b.vacc;
+    std::cout << std::endl << "-----------------------------" << std::endl << std::endl;
 }
+
 
 
 void visualization_of_board(board& b){
@@ -98,13 +107,22 @@ void visualization_of_board(board& b){
 }
 
 //          move(uppsala_prev, sthlm_prev, 0);
+
 void swap(board& previous, board& current, int idx) {
     agent swap_agent = current.agents[idx];
     current.agents[idx] = previous.agents[idx];
     previous.agents[idx] = swap_agent;
 }
 
-void infect(agent& self, agent& to_infect, std::mt19937_64& gen, std::atomic_int& inf) {
+void vaccinate(agent& agent) {
+    agent.vaccination_progress = true;
+}
+
+void vaccinate(board& b, int idx) {
+    b.agents[idx].vaccination_progress = true;
+}
+
+void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b) {
     std::uniform_int_distribution<int> dis2(0, 99);
     int infect_prob;
     if (self.status == I) {
@@ -118,10 +136,11 @@ void infect(agent& self, agent& to_infect, std::mt19937_64& gen, std::atomic_int
         int prob2 = dis2(gen);
         if (prob2 < MAKE_ASYM) {
             to_infect.status = A;
+            b.asymp++;
         }
         else {
             to_infect.status = I;
-            inf++;
+            b.inf++;
         }
     }
 }
@@ -136,6 +155,24 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
         for (int x = 0; x < DIM; x++) {
             agent& self = previous.agents[y * DIM + x];
             agent& currentSelf = current.agents[y * DIM + x];
+            std::uniform_int_distribution<int> vacc_dis(0, 99);
+            if (self.vaccination_progress) {
+                currentSelf.vaccination_rate--;
+                if (currentSelf.vaccination_rate == 0) {
+                    int vacc_check = vacc_dis(gen);
+                    if (vacc_check < VACCINATION_EFFICACY) {
+                        //Congrats! You're vaccinated!
+                        currentSelf.status = V;
+                        current.vacc++;
+                        continue;
+                    }
+                    else {
+                        //Better luck next time!
+                        //currentSelf.vaccination_progress = false;
+                        currentSelf.vaccination_rate = VACCINATION_RATE;
+                    }
+                }
+            }
             if (self.status == I || self.status == A) { //The infected checks for susceptible neighbors within the box.
                 currentSelf.recovery_rate--;
                 if (currentSelf.recovery_rate == 0) {
@@ -144,20 +181,18 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     }
                     currentSelf.status = R;
                     current.rem++;
-
                     continue;
                 }
                 int rad = self.infection_radius;
-                if (t >= QUARANTINE && Q_FLAG) {
-                    rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE))) / LAMBDA));
-                    //std::cout << "current radious is " << rad << std::endl;
+                if (t >= QUARANTINE_START && ENABLE_QUARANTINE) {
+                    rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE_START))) / LAMBDA));
 
                 }
                 if (rad <= 0) {
                     continue;
                 }
 
-                if (ONE_CHANCE) {
+                if (ONLY_ELIGIBLE) {
                     std::vector<std::tuple<int, int>> checked;
                     for (int y_box = -rad; y_box <= rad; y_box++) {
                         for (int x_box = -rad; x_box <= rad; x_box++) {
@@ -188,9 +223,8 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     agent& other = previous.agents[y_other * DIM + x_other];
                     agent& otherCurr = current.agents[y_other * DIM + x_other];
 
-                    if (other.status == S && otherCurr.status != I && otherCurr.status != A) { //If neighbour is susceptible
-                        //int prob = std::rand() % 100;
-                        infect(self, otherCurr, gen, current.inf);
+                    if (other.status == S && otherCurr.status != I && otherCurr.status != A && otherCurr.status != V) { //If neighbour is susceptible
+                        infect(self, otherCurr, gen, current);
                     } 
 
 
@@ -220,8 +254,8 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 
                     agent& other = previous.agents[y_other * DIM + x_other];
                     agent& otherCurr = current.agents[y_other * DIM + x_other];
-                    if (other.status == S && otherCurr.status != I && otherCurr.status != A) { //If neighbour is susceptible
-                        infect(self, otherCurr, gen, current.inf);
+                    if (other.status == S && otherCurr.status != I && otherCurr.status != A && otherCurr.status != V) { //If neighbour is susceptible
+                        infect(self, otherCurr, gen, current);
                     }
 
 
@@ -231,7 +265,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
             }
         }
     }
-    current.sus = current.dim * current.dim - current.rem - current.inf;
+    current.sus = current.dim * current.dim - current.rem - current.inf - current.asymp - current.vacc;
     previous = current;
 }
 
@@ -249,9 +283,13 @@ int main() {
     std::vector<double> uppsala_susp = {};
     std::vector<double> uppsala_infe = {};
     std::vector<double> uppsala_remo = {};
+    std::vector<double> uppsala_asymp = {};
+    std::vector<double> uppsala_vacc = {};
     std::vector<double> sthlm_susp = {};
     std::vector<double> sthlm_infe = {};
     std::vector<double> sthlm_remo = {};
+    std::vector<double> sthlm_asymp = {};
+    std::vector<double> sthlm_vacc = {};
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking 
@@ -261,34 +299,25 @@ int main() {
         
         
         // TODO: optimize
+
+
         step(uppsala_prev, uppsala_curr, gen, t);
-        //step(sthlm_prev, sthlm_curr, gen,rem,inf);
 
-        if(t % 10 == 0) {
-            std::cout << std::endl << "---- t: " << t;
-            print_board(uppsala_curr);
-
-        }
-        //sus = DIM * DIM - rem - inf;
-        //susp.push_back(sus);
-        //remo.push_back(rem);
-        //infe.push_back(inf);
-
-        //std::cout <<  std::endl <<"Timestep : " << t << std::endl;
-        //std::cout << std::endl << " ----Uppsala---- " << std::endl;
-        //std::cout << "seeded: " << seeded;
-        //print_board(uppsala_prev);
-        //std::cout << std::endl << "----- Sthlm----" << std::endl;
-        //print_board(sthlm_prev);
-        //std::cout << std::endl << "<-------------------------------------------------->" << std::endl << std::endl;
-       // std::cout << "printing sus: " << sus << " Printing Rem: " << rem << " Printing inf: " << inf << std::endl;
+        //step(sthlm_prev, sthlm_curr, gen, t);
+        print_board(uppsala_prev, "Uppsala", t);
 
         uppsala_susp.push_back(uppsala_curr.sus);
         uppsala_remo.push_back(uppsala_curr.inf);
         uppsala_infe.push_back(uppsala_curr.rem);
+        uppsala_asymp.push_back(uppsala_curr.asymp);
+        uppsala_vacc.push_back(uppsala_curr.vacc);
         sthlm_susp.push_back(sthlm_curr.sus);
         sthlm_remo.push_back(sthlm_curr.inf);
         sthlm_infe.push_back(sthlm_curr.rem);
+
+        sthlm_asymp.push_back(sthlm_curr.asymp);
+        sthlm_vacc.push_back(sthlm_curr.vacc);
+
 
     } // /for t
     {
@@ -300,11 +329,13 @@ int main() {
             { sthlm_susp, sthlm_remo, sthlm_infe }
         };
 
+        std::vector<std::string> comm_names = { "Uppsala", "Stockholm" };
+
         for (int i = 0; i < plot_data.size(); i++) {
             auto f = figure();
             auto ax = f->current_axes();
             plot(ax, plot_data[i]);
-            title(ax, "Community " + std::to_string(i+1));
+            title(ax, comm_names[i]);
             xlabel(ax, "t (days)");
             ylabel(ax, "population");
 #ifndef _WIN32
