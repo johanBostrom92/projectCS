@@ -2,18 +2,20 @@
 #include <vector>
 
 // TODO: add some descriptions
-#define INFECTION_RADIUS 50
-#define RECOVERY_RATE 4
+#define INFECTION_RADIUS 2
+#define RECOVERY_RATE 5
 #define INFECTION_PROBABILITY 25
 #define MAKE_ASYM 50 //The probability that an infected individual is asymptomatic
 #define ASYM_INF_PROB 10 //The probability for asymptomatic carriers to infect others
-#define DIM 30
-#define MAX_TIME 14
-#define STARTER_AGENTS 4
-#define QUARANTINE 5
-#define Q_FLAG false
+#define VACCINATION_RATE 28
+#define VACCINATION_EFFICACY 75
+#define DIM 7
+#define MAX_TIME 10
+#define STARTER_AGENTS 1
+#define QUARANTINE_START 5
+#define ENABLE_QUARANTINE false
 #define LAMBDA 2.5
-#define ONE_CHANCE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
+#define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 
 /**
  * Defines a type of agent, by its infection radius and how often it should occur.
