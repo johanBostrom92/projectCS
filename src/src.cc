@@ -44,6 +44,14 @@ void visualization_of_board(board b){
         std::vector<double> col_s;
         std::vector<double> row_s;
 
+        // X,Y for A
+        std::vector<double> col_a;
+        std::vector<double> row_a;
+
+        // X,Y for V
+        std::vector<double> col_v;
+        std::vector<double> row_v;
+
         // X,Y for I
         std::vector<double> col_i;
         std::vector<double> row_i;
@@ -57,6 +65,14 @@ void visualization_of_board(board b){
             if (b.agents[i].status == S) {
                 row_s.push_back(i / DIM);
                 col_s.push_back(i % DIM);
+            }
+            else if (b.agents[i].status == A) {
+                row_a.push_back(i / DIM);
+                col_a.push_back(i % DIM);
+            }
+            else if (b.agents[i].status == V) {
+                row_v.push_back(i / DIM);
+                col_v.push_back(i % DIM);
             }
             else if (b.agents[i].status == I) {
                 row_i.push_back(i / DIM);
@@ -86,19 +102,31 @@ void visualization_of_board(board b){
             if (!col_s.empty()) {
                 auto scat_s = scatter(col_s, row_s, size);
                 scat_s->marker_color({ 0, 0, 0 });
-                scat_s->marker_face_color({ 0.2, 0.4, 0.9 });
+                scat_s->marker_face_color({ 0.2, 0.4, 1 });
+            } 
+
+            if (!col_a.empty()) {
+                auto scat_a = scatter(col_a, row_a, size);
+                scat_a->marker_color({ 0, 0, 0 });
+                scat_a->marker_face_color({ 1, 0.3, 0.3 });
+            }
+
+            if (!col_v.empty()) {
+                auto scat_v = scatter(col_v, row_v, size);
+                scat_v->marker_color({ 0, 0, 0 });
+                scat_v->marker_face_color({ 0.84, 0.733, 0.36 });
             }
         
             if (!col_i.empty()){
                 auto scat_i = scatter(col_i, row_i, size);
                 scat_i->marker_color({ 0, 0, 0 });
-                scat_i->marker_face_color({ 0.9, 0, 0 });
+                scat_i->marker_face_color({ 1, 0, 0 });
             }
         
             if (!col_r.empty()) {
                 auto scat_r = scatter(col_r, row_r, size);
                 scat_r->marker_color({ 0, 0, 0 });
-                scat_r->marker_face_color({ 0, 0.9, 0 });
+                scat_r->marker_face_color({ 0, 1, 0 });
             }
            show();
         }
