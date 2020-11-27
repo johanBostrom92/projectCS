@@ -14,7 +14,7 @@
 #include <tuple>
 #include <algorithm>
 
-#define PLOT false 
+#define PLOT true  
 
 void print_board(board& b){
     //const std::string status[4] = { "S", "A", "I", "R" };
@@ -27,7 +27,7 @@ void print_board(board& b){
 }
 
 
-void visualization_of_board(board& b){
+void visualization_of_board(board b){
     if (PLOT){
     
         //Transform array index to X,Y cordinates as col,row
@@ -237,6 +237,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 
 
 int main() {
+    std::cout << "kom hit: 1";
     board uppsala_prev(DIM, STARTER_AGENTS, AGENT_TYPES);
     board sthlm_prev(DIM, STARTER_AGENTS, AGENT_TYPES);
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -255,9 +256,9 @@ int main() {
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking 
+        std::cout << "kom hit: ";
         
-        board uppsala_curr_copy = uppsala_curr; 
-        visualization_of_board(uppsala_curr_copy);
+        visualization_of_board(uppsala_curr);
         
         
         // TODO: optimize

@@ -3,12 +3,12 @@
 
 // TODO: add some descriptions
 #define INFECTION_RADIUS 50
-#define RECOVERY_RATE 14
+#define RECOVERY_RATE 4
 #define INFECTION_PROBABILITY 25
 #define MAKE_ASYM 50 //The probability that an infected individual is asymptomatic
 #define ASYM_INF_PROB 10 //The probability for asymptomatic carriers to infect others
-#define DIM 1000
-#define MAX_TIME 140
+#define DIM 30
+#define MAX_TIME 14
 #define STARTER_AGENTS 4
 #define QUARANTINE 5
 #define Q_FLAG false
