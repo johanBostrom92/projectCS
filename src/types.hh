@@ -3,6 +3,10 @@
 #include <vector>
 #include <atomic>
 
+
+/**
+ * The status one agent can have
+ */
 enum agent_status {
     S, A, I, V, R
 };
