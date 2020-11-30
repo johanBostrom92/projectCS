@@ -13,15 +13,16 @@
 #include <chrono>
 #include <tuple>
 #include <algorithm>
+#include <math.h>
 
 
 
-void print_board(board& b, std::string name, int t) {
+void print_board(board& b, std::string name, int t, int dimension) {
     std::cout << std::endl << "Susceptible = 0 -- Asymptomatic = 1 -- Infected = 2 -- Vaccinated = 3 -- Recovered = 4 " << std::endl;
     std::cout << std::endl << "Day: " << t << std::endl;
     std::cout << std::endl << " ----------" << name << "----------" << std::endl;
-    for (int i = 0; i < DIM * DIM; i++) {
-        if (i % DIM == 0) {
+    for (int i = 0; i < dimension * dimension; i++) {
+        if (i % dimension == 0) {
             std::endl(std::cout);
         }
             std::cout << b.agents[i].status << " ";
@@ -197,14 +198,18 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 int main() {
 
     std::vector<std::string> comm_names = { "Uppsala", "Stockholm" };
-    std::vector<double> weight = {             0.0,        1.0 };
-    int pop = 100;
+    std::vector<double> weight = {             0.25,       0.09 };
+    std::vector<int> dimensions = {};
+    int population = 100;
     std::vector<board> prev_board = {};
     std::vector<board> curr_board = {};
 
     for (int i = 0; i < comm_names.size(); i++)
     {
-        board new_board(DIM, STARTER_AGENTS, AGENT_TYPES);
+        int calc_dim = ceil(sqrt(weight[i] * population));
+        dimensions.push_back(calc_dim);
+
+        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES);
         prev_board.push_back(new_board);
         board curr = new_board;
         curr_board.push_back(curr);
@@ -229,17 +234,18 @@ int main() {
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking time
         // TODO: optimize
-
-        step(prev_board[0], curr_board[0], gen, t);
-
-        print_board(prev_board[0], comm_names[0], t);
-        uppsala_susp.push_back(curr_board[0].sus);
+        for (int i = 0; i < comm_names.size(); i++)
+        {
+        step(prev_board[i], curr_board[i], gen, t);
+        print_board(prev_board[i], comm_names[i], t, dimensions[i]);
+        }
+        /*uppsala_susp.push_back(curr_board[0].sus);
         uppsala_remo.push_back(curr_board[0].inf);
         uppsala_infe.push_back(curr_board[0].rem);
         uppsala_asymp.push_back(curr_board[0].asymp);
         uppsala_vacc.push_back(curr_board[0].vacc);
        
-        
+        */
         /* sthlm_susp.push_back(sthlm_curr.sus);
         sthlm_remo.push_back(sthlm_curr.inf);
         sthlm_infe.push_back(sthlm_curr.rem);
@@ -248,24 +254,24 @@ int main() {
 
     } // /for t
     {
-        using namespace matplot;
-
-        std::vector<std::vector<std::vector<double>>> plot_data{
-            { uppsala_susp, uppsala_remo, uppsala_infe },
-            //{ sthlm_susp, sthlm_remo, sthlm_infe }
-        };
-
-        for (int i = 0; i < plot_data.size(); i++) {
-            auto f = figure();
-            auto ax = f->current_axes();
-            plot(ax, plot_data[i]);
-            title(ax, comm_names[i]);
-            xlabel(ax, "t (days)");
-            ylabel(ax, "population");
-#ifndef _WIN32
-            legend(ax, {"s", "r", "i"});
-#endif
-        }
+//        using namespace matplot;
+//
+//        std::vector<std::vector<std::vector<double>>> plot_data{
+//            { uppsala_susp, uppsala_remo, uppsala_infe },
+//            //{ sthlm_susp, sthlm_remo, sthlm_infe }
+//        };
+//
+//        for (int i = 0; i < plot_data.size(); i++) {
+//            auto f = figure();
+//            auto ax = f->current_axes();
+//            plot(ax, plot_data[i]);
+//            title(ax, comm_names[i]);
+//            xlabel(ax, "t (days)");
+//            ylabel(ax, "population");
+//#ifndef _WIN32
+//            legend(ax, {"s", "r", "i"});
+//#endif
+//        }
 
        /* std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);

@@ -9,7 +9,7 @@
 #define ASYM_INF_PROB 10 //The probability for asymptomatic carriers to infect others
 #define VACCINATION_RATE 28
 #define VACCINATION_EFFICACY 75
-#define DIM 7
+#define DIM 3
 #define MAX_TIME 10
 #define STARTER_AGENTS 1
 #define QUARANTINE_START 5
