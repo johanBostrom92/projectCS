@@ -195,44 +195,56 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 
 
 int main() {
-    board uppsala_prev(DIM, STARTER_AGENTS, AGENT_TYPES);
-    board sthlm_prev(DIM, STARTER_AGENTS, AGENT_TYPES);
-    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
+    std::vector<std::string> comm_names = { "Uppsala", "Stockholm" };
+    std::vector<double> weight = {             0.0,        1.0 };
+    int pop = 100;
+    std::vector<board> prev_board = {};
+    std::vector<board> curr_board = {};
+
+    for (int i = 0; i < comm_names.size(); i++)
+    {
+        board new_board(DIM, STARTER_AGENTS, AGENT_TYPES);
+        prev_board.push_back(new_board);
+        board curr = new_board;
+        curr_board.push_back(curr);
+    }
+
+    //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     std::random_device rd;
     std::mt19937_64 gen(rd());
 
-    board uppsala_curr = uppsala_prev;
-    board sthlm_curr = sthlm_prev;
 
     std::vector<double> uppsala_susp = {};
     std::vector<double> uppsala_infe = {};
     std::vector<double> uppsala_remo = {};
     std::vector<double> uppsala_asymp = {};
     std::vector<double> uppsala_vacc = {};
-    std::vector<double> sthlm_susp = {};
+   /* std::vector<double> sthlm_susp = {};
     std::vector<double> sthlm_infe = {};
     std::vector<double> sthlm_remo = {};
     std::vector<double> sthlm_asymp = {};
-    std::vector<double> sthlm_vacc = {};
+    std::vector<double> sthlm_vacc = {};*/
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking time
         // TODO: optimize
 
+        step(prev_board[0], curr_board[0], gen, t);
 
-        step(uppsala_prev, uppsala_curr, gen, t);
-        //step(sthlm_prev, sthlm_curr, gen, t);
-        print_board(uppsala_prev, "Uppsala", t);
-        uppsala_susp.push_back(uppsala_curr.sus);
-        uppsala_remo.push_back(uppsala_curr.inf);
-        uppsala_infe.push_back(uppsala_curr.rem);
-        uppsala_asymp.push_back(uppsala_curr.asymp);
-        uppsala_vacc.push_back(uppsala_curr.vacc);
-        sthlm_susp.push_back(sthlm_curr.sus);
+        print_board(prev_board[0], comm_names[0], t);
+        uppsala_susp.push_back(curr_board[0].sus);
+        uppsala_remo.push_back(curr_board[0].inf);
+        uppsala_infe.push_back(curr_board[0].rem);
+        uppsala_asymp.push_back(curr_board[0].asymp);
+        uppsala_vacc.push_back(curr_board[0].vacc);
+       
+        
+        /* sthlm_susp.push_back(sthlm_curr.sus);
         sthlm_remo.push_back(sthlm_curr.inf);
         sthlm_infe.push_back(sthlm_curr.rem);
         sthlm_asymp.push_back(sthlm_curr.asymp);
-        sthlm_vacc.push_back(sthlm_curr.vacc);
+        sthlm_vacc.push_back(sthlm_curr.vacc);*/
 
     } // /for t
     {
@@ -240,10 +252,8 @@ int main() {
 
         std::vector<std::vector<std::vector<double>>> plot_data{
             { uppsala_susp, uppsala_remo, uppsala_infe },
-            { sthlm_susp, sthlm_remo, sthlm_infe }
+            //{ sthlm_susp, sthlm_remo, sthlm_infe }
         };
-
-        std::vector<std::string> comm_names = { "Uppsala", "Stockholm" };
 
         for (int i = 0; i < plot_data.size(); i++) {
             auto f = figure();
@@ -257,9 +267,9 @@ int main() {
 #endif
         }
 
-        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+       /* std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-        std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;
+        std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;*/
     }
     std::cout << "Press Enter to exit..." << std::endl;
     std::cin.get();
