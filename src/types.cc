@@ -65,6 +65,8 @@ board& board::operator=(board&& other) {
     if (this != &other) {
         this->agents = std::move(other.agents);
         this->dim = other.dim;
+        this->name = other.name;
+        this->weight = other.weight;
         other.dim = 0;
 
         this->sus = other.sus.load();
@@ -80,6 +82,8 @@ board& board::operator=(const board& other) {
     if (&other != this) {
         this->agents = other.agents;
         this->dim = other.dim;
+        this->name = other.name;
+        this->weight = other.weight;
 
         this->sus = other.sus.load();
         this->rem = other.rem.load();
