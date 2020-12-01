@@ -18,7 +18,12 @@
 
 
 
-
+/**
+ * Prints the current board
+ * @param b The board to be printed
+ * @param name The name of the board/community
+ * @param t The current timestep
+ */
 void print_board(board& b, std::string name, int t) {
     std::cout << std::endl << "Susceptible = 0 -- Asymptomatic = 1 -- Infected = 2 -- Vaccinated = 3 -- Recovered = 4 " << std::endl;
     std::cout << std::endl << "Day: " << t << std::endl;
@@ -33,6 +38,7 @@ void print_board(board& b, std::string name, int t) {
     std::cout << std::endl << std::endl << "Susceptible: " << b.sus << std::endl << "Recovered: " << b.rem << std::endl << "Infected: " << b.inf << std::endl << "Asymptomatic: " << b.asymp << std::endl << "Vaccinated: " << b.vacc;
     std::cout << std::endl << "-----------------------------" << std::endl << std::endl;
 }
+
 
 
 void visualization_of_board(board b){
@@ -135,20 +141,45 @@ void visualization_of_board(board b){
 
 //          move(uppsala_prev, sthlm_prev, 0);
 
+
+/**
+ * Swaps the position of an agent from one board to another
+ * @param previous Board to swap from
+ * @param current Board to swap to
+ * @param idx Index of the agent to swap
+ */
+
 void swap(board& previous, board& current, int idx) {
     agent swap_agent = current.agents[idx];
     current.agents[idx] = previous.agents[idx];
     previous.agents[idx] = swap_agent;
 }
 
+
+/**
+ * Start the vaccination process of an agent
+ * @param agent The agent to vaccinate
+ */
 void vaccinate(agent& agent) {
     agent.vaccination_progress = true;
 }
 
+/**
+ * Start the vaccination process of an agent from a specific board
+ * @param b The board of which agent to vaccinate
+ * @param idx The index of the agent in the board
+ */
 void vaccinate(board& b, int idx) {
     b.agents[idx].vaccination_progress = true;
 }
 
+/**
+ * One agent which infects another agent
+ * @param self The agent which will infect
+ * @param to_infect The agent to infect
+ * @param gen The current random number generator
+ * @param b The board b in which both ag ents reside
+ */
 void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b) {
     std::uniform_int_distribution<int> dis2(0, 99);
     int infect_prob;
@@ -172,6 +203,13 @@ void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b) {
     }
 }
 
+/**
+ * Take one step in the simulation
+ * @param previous The previous state of the board
+ * @param current The current state of the board
+ * @param gen The current random number generator
+ * @param t The current timestep
+ */
 void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 #ifdef _WIN32
 #pragma omp parallel for
@@ -183,7 +221,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
             agent& self = previous.agents[y * DIM + x];
             agent& currentSelf = current.agents[y * DIM + x];
             std::uniform_int_distribution<int> vacc_dis(0, 99);
-            if (self.vaccination_progress) {
+            if (self.vaccination_progress) { //Check first if agent is vaccinated
                 currentSelf.vaccination_rate--;
                 if (currentSelf.vaccination_rate == 0) {
                     int vacc_check = vacc_dis(gen);
@@ -313,6 +351,7 @@ int main() {
     std::vector<double> uppsala_remo = {};
     std::vector<double> uppsala_asymp = {};
     std::vector<double> uppsala_vacc = {};
+
     std::vector<double> sthlm_susp = {};
     std::vector<double> sthlm_infe = {};
     std::vector<double> sthlm_remo = {};
@@ -357,7 +396,7 @@ int main() {
             { sthlm_susp, sthlm_remo, sthlm_infe }
         };
 
-        std::vector<std::string> comm_names = { "Uppsala", "Stockholm" };
+        std::vector<std::string> comm_names = { "Uppsala", "Stockholm" }; //A vector which contain community names
 
         for (int i = 0; i < plot_data.size(); i++) {
             auto f = figure();
@@ -366,7 +405,7 @@ int main() {
             title(ax, comm_names[i]);
             xlabel(ax, "t (days)");
             ylabel(ax, "population");
-#ifndef _WIN32
+#ifndef _WIN32 //Must be set in allcaps to work
             legend(ax, {"s", "r", "i"});
 
 #endif

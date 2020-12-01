@@ -3,6 +3,15 @@
 #include <vector>
 #include <atomic>
 
+
+/**
+ * The status one agent can have
+ * S = Susceptible - Not currently infected but can be by an Infected or Asymptotic agent
+ * A = Asymptotic - Currently infected but not showing symptoms, can infect Susceptible agents so they become either Infected or Asymptotic
+ * I = Infected - Currently infected and showing symptoms, can infect Susceptible agents so they become either Infected or Asymptotic
+ * V = Vaccinated - Currently vaccinated, cant infect nor be infected
+ * R = Recovered - Has been infected but recovered, cant infect nor be infected.
+ */
 enum agent_status {
     S, A, I, V, R
 };
