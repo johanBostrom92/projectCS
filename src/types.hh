@@ -5,7 +5,7 @@
 #include <string>
 
 enum agent_status {
-    S, A, I, V, R
+    S, A, I, V, R, J
 };
 
 /**

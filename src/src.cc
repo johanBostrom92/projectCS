@@ -24,7 +24,12 @@ void print_board(board& b, int t) {
         if (i % b.dim == 0) {
             std::endl(std::cout);
         }
+        if (b.agents[i].status == J) {
+            std::cout << "J" << " ";
+        }
+        else {
             std::cout << b.agents[i].status << " ";
+        }
 
     }
     std::cout << std::endl << std::endl << "Susceptible: " << b.sus << std::endl << "Recovered: " << b.rem << std::endl << "Infected: " << b.inf << std::endl << "Asymptomatic: " << b.asymp << std::endl << "Vaccinated: " << b.vacc;
@@ -102,6 +107,9 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                 if (currentSelf.recovery_rate == 0) {
                     if (self.status == I) {//Infected only decreased if carrier was not asymptomatic
                         current.inf--;
+                    }
+                    else if(self.status == A) {
+                        current.asymp--;
                     }
                     currentSelf.status = R;
                     current.rem++;
@@ -193,11 +201,24 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
     previous = current;
 }
 
+int whereToMove(std::vector<double> items, std::mt19937_64& gen) {
+    std::uniform_real_distribution move_dist(0.0, 1.0);
+    double cumulative = 1;
+    double rand = move_dist(gen);
+    for (int i = 0; i < items.size(); i++) {
+        double cumulative =- items[i];
+        if (rand >= cumulative) {
+            return i;
+        }
+    }
+
+}
+
 
 int main() {
 
     std::vector<std::string> comm_names = { "Uppsala", "Stockholm" };
-    std::vector<double> weight = {             0.09,       0.09 };
+    std::vector<double> weight = {             0.09,       0.09 }; //TODO fix weigth 
     std::vector<int> dimensions = {};
     int population = 100;
     std::vector<board> prev_board = {};
@@ -215,9 +236,9 @@ int main() {
     }
 
     //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
     std::random_device rd;
     std::mt19937_64 gen(rd());
-
 
     std::vector<double> uppsala_susp = {};
     std::vector<double> uppsala_infe = {};
@@ -230,14 +251,31 @@ int main() {
     std::vector<double> sthlm_asymp = {};
     std::vector<double> sthlm_vacc = {};*/
 
+    std::uniform_int_distribution<int> board_dis(0, comm_names.size()-1);
+
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking time
         // TODO: optimize
-        for (int i = 0; i < comm_names.size(); i++)
-        {
-        step(prev_board[i], curr_board[i], gen, t);
-        print_board(prev_board[i], t);
-        }
+        for (int i = 0; i < 10; i++) {
+            int fromBoardIdx = board_dis(gen);
+            board fromBoard = prev_board[fromBoardIdx];
+            int fromDim = fromBoard.dim;
+
+            std::uniform_int_distribution<int> fromAgent_dis(0, (fromDim*fromDim-1));
+            int agentfromBoardIdx = fromAgent_dis(gen);
+            int toBoardIdx = whereToMove(weight, gen);
+            int targetDim = prev_board[toBoardIdx].dim;
+
+            std::uniform_int_distribution<int> targetAgent_dis(0, (targetDim * targetDim - 1));
+            int agentTargetIdx = targetAgent_dis(gen);
+            swap(fromBoard, prev_board[toBoardIdx], fromBoardIdx, toBoardIdx);
+            // TODO Update count from agents!
+         }
+            for (int i = 0; i < comm_names.size(); i++)
+            {
+                step(prev_board[i], curr_board[i], gen, t);
+                print_board(prev_board[i], t);
+            }
         /*uppsala_susp.push_back(curr_board[0].sus);
         uppsala_remo.push_back(curr_board[0].inf);
         uppsala_infe.push_back(curr_board[0].rem);
