@@ -14,7 +14,7 @@
 #define STARTER_AGENTS 1 //The amount of agents which starts the simulation infected
 #define QUARANTINE_START 5 //The timestep until agents starts quarantining
 #define ENABLE_QUARANTINE false //The flag to enable quarantine
-#define LAMBDA 2.5  // Hmm?
+#define LAMBDA 2.5  // How fast the INFECTION_RADIUS decrease in case of a lock down
 #define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 
 /**
