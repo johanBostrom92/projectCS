@@ -1,19 +1,21 @@
 #include "types.hh"
 #include <random>
 
-board::board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type> agent_types)
+board::board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type> agent_types, double weight, std::string name)
     : dim(dim),
     agents(dim*dim),
     sus(dim*dim - initial_infections),
     rem(0),
     inf(initial_infections),
     asymp(0),
-    vacc(0){
+    vacc(0),
+    weight(weight),
+    name(name){
 
     std::default_random_engine rand_generator;
 
     // Generate initial infections
-    std::uniform_int_distribution<int> dis(0, (DIM*DIM-1));
+    std::uniform_int_distribution<int> dis(0, (dim*dim-1));
     int seeded = 0;
     while (seeded != initial_infections) {
         int pz = dis(rand_generator);

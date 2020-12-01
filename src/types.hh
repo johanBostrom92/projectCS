@@ -2,6 +2,7 @@
 #include "parameters.hh"
 #include <vector>
 #include <atomic>
+#include <string>
 
 enum agent_status {
     S, A, I, V, R
@@ -17,14 +18,16 @@ struct agent {
     int recovery_rate = RECOVERY_RATE;
     bool vaccination_progress = false;
     int vaccination_rate = VACCINATION_RATE;
-
 };
 
 /**
  * A group of agents interacting in a grid
  */
 struct board {
-    unsigned int dim = DIM;
+    unsigned int dim;
+    double weight;
+    std::string name;
+
     std::vector<agent> agents;
     std::atomic_int sus;
     std::atomic_int rem;
@@ -38,7 +41,7 @@ struct board {
      * @param initial_infections The number of infected agents at creation
      * @param agent_types Specifications for what agents to populate the board with
      */
-    board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type> agent_types);
+    board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type> agent_types, double weight, std::string name);
 
     // std::atomic deletes these, so we need to redefine them.
     // Note that these are not atomic
