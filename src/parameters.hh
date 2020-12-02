@@ -41,4 +41,4 @@ static const std::vector<agent_type> AGENT_TYPES = {
     agent_type{ INFECTION_RADIUS, 0, 1 }
 };
 
-static_assert(DIM >= INFECTION_RADIUS);
+static_assert(DIM >= INFECTION_RADIUS, "The infection radius cannot be greater than the board dimension");
