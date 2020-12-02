@@ -218,10 +218,18 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 
 #define STATUS_TO_WEIGHT(s) ((s) == I ? 1 : 0)
 
+/**
+ * Updates all vaccination weights for a board, to determine who should be more
+ * or less likely to receive a vaccine. This is based on the number of infected agents within
+ * INFECTION_RADIUS of each agent.
+ * TODO: make it possible to customize the strategy for how the weights are chosen
+ */
 void update_vaccination_weights(board& b) {
     b.vaccination_weight_sum = 0;
-    // memset(b.vaccination_weights.data(), 0, b.vaccination_weights.size() * sizeof(b.vaccination_weights[0]));
     std::vector<unsigned int> tmp(b.vaccination_weights.size());
+
+    // Essentially, this is a box blur, which we can separate into one pass for each axis
+    // (we first blur on the x axis and store it to tmp, then blur tmp on the y axis and store it back to the board)
 
     #pragma omp parallel for
     for (int y = 0; y < b.dim; y++) {
@@ -263,12 +271,20 @@ void update_vaccination_weights(board& b) {
     }
 }
 
+/**
+ * Vaccinates a number of agents in the board, based on the board's vaccination weights
+ * @param board The board to perform vaccinations in
+ * @param n_vaccinations The number of vaccinations to perform
+ */
 void vaccinate(board& b, unsigned int n_vaccinations, std::mt19937_64& gen) {
+    // Make sure we don't perform more vaccinations than there are unvaccinated agents
     n_vaccinations = std::min((size_t) n_vaccinations, b.agents.size() - b.vaccinations_started);
     if (n_vaccinations == 0 || b.vaccination_weight_sum == 0) {
         return;
     }
 
+    // For each agent, compute the combined weight of it and all agents with a lower index
+    // This lets us later use lower_bound to do a binary search for the agent to vaccinate
     std::vector<unsigned int> cumulative_weights(b.agents.size());
     unsigned int weight_sum = 0;
     for(int i = 0; i < b.agents.size(); i++) {
@@ -277,30 +293,29 @@ void vaccinate(board& b, unsigned int n_vaccinations, std::mt19937_64& gen) {
     }
     assert(cumulative_weights[b.agents.size() - 1] = b.vaccination_weight_sum);
 
-    // Depending on the number of vaccinations (in relation to the total number of agents),
-    // it might be better to precompute the cumulative weight into a separate vector,
-    // and perform a binary search on it for every vaccination
+    std::uniform_int_distribution<int> dis(1, (int) b.vaccination_weight_sum); // Generates (cumulative) weight values determining who gets vaccinated
+    std::vector<std::atomic_flag> vaccinated(b.agents.size());  // Stores which agents have been vaccinated this round
     unsigned int collisions = 0;
-    std::uniform_int_distribution<int> dis(0, (int) b.vaccination_weight_sum - 1);
-    std::vector<std::atomic_flag> vaccinated(b.agents.size());
+
     #pragma omp parallel for
     for (int i = 0; i < n_vaccinations; i++) {
         int n = dis(gen);
-        for (int a = 0; a < b.agents.size(); a++) {
-            if (cumulative_weights[a] > n) {
-                if (!vaccinated[a].test_and_set()) {
-                    vaccinate(b.agents[a]);
-                    b.vaccinations_started.fetch_add(1, std::memory_order_acq_rel);
-                    b.vaccination_weight_sum.fetch_sub(b.vaccination_weights[a], std::memory_order_acq_rel);
-                    b.vaccination_weights[a] = 0;
-                } else {
-                    collisions++;
-                }
-                break;
-            }
+        // Finds the first agent with cumulative weight greater than n
+        auto it = std::lower_bound(cumulative_weights.begin(), cumulative_weights.end(), n);
+        unsigned int agent = it - cumulative_weights.begin();
+        // Atomically check if this agent has been vaccinated this round
+        if (!vaccinated[agent].test_and_set()) {
+            vaccinate(b.agents[agent]);
+            b.vaccinations_started.fetch_add(1, std::memory_order_acq_rel);
+            b.vaccination_weight_sum.fetch_sub(b.vaccination_weights[agent], std::memory_order_acq_rel);
+            b.vaccination_weights[agent] = 0;
+        } else {
+            // If it's been vaccinated, we will need to do it over
+            collisions++;
         }
     }
     if (collisions > 0) {
+        // Redo the vaccinations that collided. It might be better to use a collision-free algorithm here.
         vaccinate(b, collisions, gen);
     }
 }
