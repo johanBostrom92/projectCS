@@ -4,7 +4,7 @@
 // TODO: add some descriptions
 #define INFECTION_RADIUS 2
 #define RECOVERY_RATE 5
-#define INFECTION_PROBABILITY 25
+#define INFECTION_PROBABILITY 100
 #define MAKE_ASYM 50 //The probability that an infected individual is asymptomatic
 #define ASYM_INF_PROB 10 //The probability for asymptomatic carriers to infect others
 #define VACCINATION_RATE 28

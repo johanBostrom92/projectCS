@@ -17,14 +17,17 @@ board::board(unsigned int dim, unsigned int initial_infections, const std::vecto
     // Generate initial infections
     std::uniform_int_distribution<int> dis(0, (dim*dim-1));
     int seeded = 0;
-    while (seeded != initial_infections) {
-        int pz = dis(rand_generator);
-        if (agents[pz].status != I) {
-            agents[pz].status = I;
-            seeded++;
-        }
+    if (name == "Uppsala") {
+        while (seeded != initial_infections) {
+            int pz = dis(rand_generator);
+            if (agents[pz].status != I) {
+                agents[pz].status = I;
+                seeded++;
+            }
 
+        }
     }
+
 
     // Get the sum of all type weights
     double weight_sum = 0.0f;

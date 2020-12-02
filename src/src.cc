@@ -41,6 +41,7 @@ void swap(board& fromBoard, board& toBoard, int fromIndex, int toIndex) {
     agent swap_agent = toBoard.agents[toIndex];
     toBoard.agents[toIndex] = fromBoard.agents[fromIndex];
     fromBoard.agents[fromIndex] = swap_agent;
+    std::cout << std::endl << "Swapped " << fromBoard.name << " :" << fromIndex << " with" << toBoard.name << " : " << toIndex << std::endl;
 }
 
 void vaccinate(agent& agent) {
@@ -80,10 +81,10 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 #else
 #pragma omp parallel for collapse(2)
 #endif
-    for (int y = 0; y < DIM; y++) {
-        for (int x = 0; x < DIM; x++) {
-            agent& self = previous.agents[y * DIM + x];
-            agent& currentSelf = current.agents[y * DIM + x];
+    for (int y = 0; y < current.dim; y++) {
+        for (int x = 0; x < current.dim; x++) {
+            agent& self = previous.agents[y * current.dim + x];
+            agent& currentSelf = current.agents[y * current.dim + x];
             std::uniform_int_distribution<int> vacc_dis(0, 99);
             if (self.vaccination_progress) {
                 currentSelf.vaccination_rate--;
@@ -130,13 +131,13 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                         for (int x_box = -rad; x_box <= rad; x_box++) {
                             int y_other = y + y_box;
                             int x_other = x + x_box;
-                            if (y_other < 0 || y_other >= DIM) { //Checks for Bounds
+                            if (y_other < 0 || y_other >= current.dim) { //Checks for Bounds
                                 break;
                             }
-                            else if (x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) {
+                            else if (x_other < 0 || x_other >= current.dim || (x_other == x && y_other == y)) {
                                 continue;
                             }
-                            agent& other = previous.agents[y_other * DIM + x_other];
+                            agent& other = previous.agents[y_other * current.dim + x_other];
                             if (other.status == S) {
                                 checked.push_back(std::make_tuple(x_other, y_other));
                             }
@@ -152,8 +153,8 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     }
                     int y_other = std::get<1>(checked.at(rand_S));
                     int x_other = std::get<0>(checked.at(rand_S));
-                    agent& other = previous.agents[y_other * DIM + x_other];
-                    agent& otherCurr = current.agents[y_other * DIM + x_other];
+                    agent& other = previous.agents[y_other * current.dim + x_other];
+                    agent& otherCurr = current.agents[y_other * current.dim + x_other];
 
                     if (other.status == S && otherCurr.status != I && otherCurr.status != A && otherCurr.status != V) { //If neighbour is susceptible
                         infect(self, otherCurr, gen, current);
@@ -179,13 +180,13 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     int y_rand = dis(gen);
                     int y_other = y_rand + y;
                     int x_other = x_rand + x;
-                            if (y_other < 0 || y_other >= DIM || x_other < 0 || x_other >= DIM || (x_other == x && y_other == y)) { //Checks for Bounds
+                            if (y_other < 0 || y_other >= current.dim || x_other < 0 || x_other >= current.dim || (x_other == x && y_other == y)) { //Checks for Bounds
                         goto Repeating; //Repeat failures
                                 //continue; //Skip failures
                     }
 
-                    agent& other = previous.agents[y_other * DIM + x_other];
-                    agent& otherCurr = current.agents[y_other * DIM + x_other];
+                    agent& other = previous.agents[y_other * current.dim + x_other];
+                    agent& otherCurr = current.agents[y_other * current.dim + x_other];
                     if (other.status == S && otherCurr.status != I && otherCurr.status != A && otherCurr.status != V) { //If neighbour is susceptible
                         infect(self, otherCurr, gen, current);
                     }
@@ -206,7 +207,7 @@ int whereToMove(std::vector<double> items, std::mt19937_64& gen) {
     double cumulative = 1;
     double rand = move_dist(gen);
     for (int i = 0; i < items.size(); i++) {
-        double cumulative =- items[i];
+        cumulative -= items[i];
         if (rand >= cumulative) {
             return i;
         }
@@ -215,12 +216,88 @@ int whereToMove(std::vector<double> items, std::mt19937_64& gen) {
 }
 
 
+
+
+
+
+void updateBoard(board& from, board& to, agent& agentFrom, agent& agentTo) {
+    int agentFromA, agentFromS, agentFromV, agentFromI, agentFromR;
+    agentFromA = agentFromS = agentFromV = agentFromI = agentFromR = 0;
+    int agentToA, agentToS, agentToV, agentToI, agentToR;
+    agentToA = agentToS = agentToV = agentToI = agentToR = 0;
+    switch (agentFrom.status) {
+        case S:
+            agentFromS++;
+            break;
+        case A:
+            agentFromA++;
+            break;
+        case I:
+            agentFromI++;
+            break;
+        case V:
+            agentFromV++;
+            break;
+        case R:
+            agentFromR++;
+            break;
+        default:
+            //Should not execute
+            std::cout << "Unknown type!";
+   }
+
+    switch (agentTo.status) {
+        case S:
+            agentToS++;
+            break;
+        case A:
+            agentToA++;
+            break;
+        case I:
+            agentToI++;
+            break;
+        case V:
+            agentToV++;
+            break;
+        case R:
+            agentToR++;
+            break;
+        default:
+            //Should not execute
+            std::cout << "Unknown type!";
+    }
+
+    from.sus -= agentFromS;
+    from.asymp -= agentFromA;
+    from.vacc -= agentFromV;
+    from.inf -= agentFromI;
+    from.rem -= agentFromR;
+
+    to.sus -= agentToS;
+    to.asymp -= agentToA;
+    to.vacc -= agentToI;
+    to.inf -= agentToV;
+    to.rem -= agentToR;
+
+    from.sus += agentToS;
+    from.asymp += agentToA;
+    from.vacc += agentToV;
+    from.inf += agentToI;
+    from.rem += agentToR;
+
+    to.sus += agentFromS;
+    to.asymp += agentFromA;
+    to.vacc += agentFromI;
+    to.inf += agentFromV;
+    to.rem += agentFromR;
+}
+
 int main() {
 
     std::vector<std::string> comm_names = { "Uppsala", "Stockholm" };
-    std::vector<double> weight = {             0.09,       0.09 }; //TODO fix weigth 
+    std::vector<double> weight = {             0.50,       0.50 };
     std::vector<int> dimensions = {};
-    int population = 100;
+    int population = 10;
     std::vector<board> prev_board = {};
     std::vector<board> curr_board = {};
 
@@ -230,6 +307,8 @@ int main() {
         dimensions.push_back(calc_dim);
 
         board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, weight[i], comm_names[i]);
+
+
         prev_board.push_back(new_board);
         board curr = new_board;
         curr_board.push_back(curr);
@@ -256,7 +335,7 @@ int main() {
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking time
         // TODO: optimize
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 1; i++) {
             int fromBoardIdx = board_dis(gen);
             board fromBoard = prev_board[fromBoardIdx];
             int fromDim = fromBoard.dim;
@@ -264,12 +343,13 @@ int main() {
             std::uniform_int_distribution<int> fromAgent_dis(0, (fromDim*fromDim-1));
             int agentfromBoardIdx = fromAgent_dis(gen);
             int toBoardIdx = whereToMove(weight, gen);
-            int targetDim = prev_board[toBoardIdx].dim;
+            board toBoard = prev_board[toBoardIdx];
+            int targetDim = toBoard.dim;
 
-            std::uniform_int_distribution<int> targetAgent_dis(0, (targetDim * targetDim - 1));
-            int agentTargetIdx = targetAgent_dis(gen);
-            swap(fromBoard, prev_board[toBoardIdx], fromBoardIdx, toBoardIdx);
-            // TODO Update count from agents!
+            std::uniform_int_distribution<int> targetAgent_dis(0, (targetDim*targetDim-1));
+            int agentToBoardIdx = targetAgent_dis(gen);
+            swap(fromBoard, toBoard, agentfromBoardIdx, agentToBoardIdx);
+            updateBoard(fromBoard, toBoard, fromBoard.agents[agentfromBoardIdx], toBoard.agents[agentToBoardIdx]);
          }
             for (int i = 0; i < comm_names.size(); i++)
             {
