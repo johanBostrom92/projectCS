@@ -13,6 +13,7 @@
 #include <chrono>
 #include <tuple>
 #include <algorithm>
+#include <cassert>
 
 
 
@@ -86,6 +87,27 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     int vacc_check = vacc_dis(gen);
                     if (vacc_check < VACCINATION_EFFICACY) {
                         //Congrats! You're vaccinated!
+                        // TODO: handle A and I specially?
+                        switch (currentSelf.status) {
+                            case S:
+                                current.sus--;
+                                break;
+                            case A:
+                                current.asymp--;
+                                break;
+                            case I:
+                                current.inf--;
+                                break;
+                            case V:
+                                current.vacc--;
+                                break;
+                            case R:
+                                current.rem--;
+                                break;
+                            default:
+                                std::cout << "WARN: Unknown agent status: " << currentSelf.status << std::endl;
+                                break;
+                        }
                         currentSelf.status = V;
                         current.vacc++;
                         continue;
@@ -93,7 +115,6 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     else {
                         //Better luck next time!
                         //currentSelf.vaccination_progress = false;
-                        currentSelf.vaccination_rate = VACCINATION_RATE;
                     }
                 }
             }
@@ -102,6 +123,8 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                 if (currentSelf.recovery_rate == 0) {
                     if (self.status == I) {//Infected only decreased if carrier was not asymptomatic
                         current.inf--;
+                    } else if (self.status == A) {
+                        current.asymp--;
                     }
                     currentSelf.status = R;
                     current.rem++;
@@ -147,9 +170,9 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     agent& other = previous.agents[y_other * DIM + x_other];
                     agent& otherCurr = current.agents[y_other * DIM + x_other];
 
-                    if (other.status == S && otherCurr.status != I && otherCurr.status != A && otherCurr.status != V) { //If neighbour is susceptible
+                    if (other.status == S && otherCurr.status == S) { //If neighbour is susceptible
                         infect(self, otherCurr, gen, current);
-                    } 
+                    }
 
 
                     else {
@@ -178,7 +201,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 
                     agent& other = previous.agents[y_other * DIM + x_other];
                     agent& otherCurr = current.agents[y_other * DIM + x_other];
-                    if (other.status == S && otherCurr.status != I && otherCurr.status != A && otherCurr.status != V) { //If neighbour is susceptible
+                    if (other.status == S && otherCurr.status == S) { //If neighbour is susceptible
                         infect(self, otherCurr, gen, current);
                     }
 
@@ -193,6 +216,94 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
     previous = current;
 }
 
+#define STATUS_TO_WEIGHT(s) ((s) == I ? 1 : 0)
+
+void update_vaccination_weights(board& b) {
+    b.vaccination_weight_sum = 0;
+    // memset(b.vaccination_weights.data(), 0, b.vaccination_weights.size() * sizeof(b.vaccination_weights[0]));
+    std::vector<unsigned int> tmp(b.vaccination_weights.size());
+
+    #pragma omp parallel for
+    for (int y = 0; y < b.dim; y++) {
+        unsigned int sum = 0;
+        for (int x_box = 0; x_box < INFECTION_RADIUS; x_box++) {
+            sum += STATUS_TO_WEIGHT(b.agents[y*b.dim + x_box].status);
+        }
+        for (int x = 0; x < b.dim; x++) {
+            if (x + INFECTION_RADIUS < b.dim) {
+                sum += STATUS_TO_WEIGHT(b.agents[y*b.dim + x + INFECTION_RADIUS].status);
+            }
+            tmp[y*b.dim + x] = sum;
+            if (x - INFECTION_RADIUS >= 0) {
+                sum -= STATUS_TO_WEIGHT(b.agents[int(y*b.dim) + x - INFECTION_RADIUS].status);
+            }
+        }
+    }
+    #pragma omp parallel for
+    for (int x = 0; x < b.dim; x++) {
+        unsigned int sum = 0;
+        for (int y_box = 0; y_box < INFECTION_RADIUS; y_box++) {
+            sum += tmp[y_box*b.dim + x];
+        }
+        for (int y = 0; y < b.dim; y++) {
+            if (y + INFECTION_RADIUS < b.dim) {
+                sum += tmp[(y + INFECTION_RADIUS)*b.dim + x];
+            }
+            int idx = y*b.dim + x;
+            int weight = 1 + sum;
+            if (b.agents[idx].status == V || b.agents[idx].vaccination_progress) {
+                weight = 0;
+            }
+            b.vaccination_weights[idx] = weight;
+            b.vaccination_weight_sum.fetch_add(weight, std::memory_order_acq_rel);
+            if (y - INFECTION_RADIUS >= 0) {
+                sum -= tmp[(y - INFECTION_RADIUS)*int(b.dim) + x];
+            }
+        }
+    }
+}
+
+void vaccinate(board& b, unsigned int n_vaccinations, std::mt19937_64& gen) {
+    n_vaccinations = std::min((size_t) n_vaccinations, b.agents.size() - b.vaccinations_started);
+    if (n_vaccinations == 0 || b.vaccination_weight_sum == 0) {
+        return;
+    }
+
+    std::vector<unsigned int> cumulative_weights(b.agents.size());
+    unsigned int weight_sum = 0;
+    for(int i = 0; i < b.agents.size(); i++) {
+        weight_sum += b.vaccination_weights[i];
+        cumulative_weights[i] = weight_sum;
+    }
+    assert(cumulative_weights[b.agents.size() - 1] = b.vaccination_weight_sum);
+
+    // Depending on the number of vaccinations (in relation to the total number of agents),
+    // it might be better to precompute the cumulative weight into a separate vector,
+    // and perform a binary search on it for every vaccination
+    unsigned int collisions = 0;
+    std::uniform_int_distribution<int> dis(0, (int) b.vaccination_weight_sum - 1);
+    std::vector<std::atomic_flag> vaccinated(b.agents.size());
+    #pragma omp parallel for
+    for (int i = 0; i < n_vaccinations; i++) {
+        int n = dis(gen);
+        for (int a = 0; a < b.agents.size(); a++) {
+            if (cumulative_weights[a] > n) {
+                if (!vaccinated[a].test_and_set()) {
+                    vaccinate(b.agents[a]);
+                    b.vaccinations_started.fetch_add(1, std::memory_order_acq_rel);
+                    b.vaccination_weight_sum.fetch_sub(b.vaccination_weights[a], std::memory_order_acq_rel);
+                    b.vaccination_weights[a] = 0;
+                } else {
+                    collisions++;
+                }
+                break;
+            }
+        }
+    }
+    if (collisions > 0) {
+        vaccinate(b, collisions, gen);
+    }
+}
 
 int main() {
     board uppsala_prev(DIM, STARTER_AGENTS, AGENT_TYPES);
@@ -217,12 +328,15 @@ int main() {
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking time
-        // TODO: optimize
-
 
         step(uppsala_prev, uppsala_curr, gen, t);
+        if (t > VACCINATION_START) {
+            update_vaccination_weights(uppsala_curr);
+            vaccinate(uppsala_curr, VACCINATIONS_PER_DAY, gen);
+
+        }
         //step(sthlm_prev, sthlm_curr, gen, t);
-        print_board(uppsala_prev, "Uppsala", t);
+        // print_board(uppsala_prev, "Uppsala", t);
         uppsala_susp.push_back(uppsala_curr.sus);
         uppsala_remo.push_back(uppsala_curr.inf);
         uppsala_infe.push_back(uppsala_curr.rem);
@@ -239,7 +353,7 @@ int main() {
         using namespace matplot;
 
         std::vector<std::vector<std::vector<double>>> plot_data{
-            { uppsala_susp, uppsala_remo, uppsala_infe },
+            { uppsala_susp, uppsala_remo, uppsala_infe, uppsala_asymp, uppsala_vacc },
             { sthlm_susp, sthlm_remo, sthlm_infe }
         };
 
