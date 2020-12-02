@@ -17,6 +17,7 @@
 
 
 void print_board(board& b, int t) {
+    if(t== 0)
     std::cout << std::endl << "Susceptible = 0 -- Asymptomatic = 1 -- Infected = 2 -- Vaccinated = 3 -- Recovered = 4 " << std::endl;
     std::cout << std::endl << "Day: " << t << std::endl;
     std::cout << std::endl << " ----------" << b.name << "----------" << std::endl;
@@ -24,12 +25,7 @@ void print_board(board& b, int t) {
         if (i % b.dim == 0) {
             std::endl(std::cout);
         }
-        if (b.agents[i].status == J) {
-            std::cout << "J" << " ";
-        }
-        else {
             std::cout << b.agents[i].status << " ";
-        }
 
     }
     std::cout << std::endl << std::endl << "Susceptible: " << b.sus << std::endl << "Recovered: " << b.rem << std::endl << "Infected: " << b.inf << std::endl << "Asymptomatic: " << b.asymp << std::endl << "Vaccinated: " << b.vacc;
@@ -41,7 +37,7 @@ void swap(board& fromBoard, board& toBoard, int fromIndex, int toIndex) {
     agent swap_agent = toBoard.agents[toIndex];
     toBoard.agents[toIndex] = fromBoard.agents[fromIndex];
     fromBoard.agents[fromIndex] = swap_agent;
-    std::cout << std::endl << "Swapped " << fromBoard.name << " :" << fromIndex << " with" << toBoard.name << " : " << toIndex << std::endl;
+    std::cout << std::endl << "Swapped " << fromBoard.name << " :" << fromIndex << " with " << toBoard.name << ": " << toIndex << std::endl;
 }
 
 void vaccinate(agent& agent) {
@@ -335,27 +331,30 @@ int main() {
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking time
         // TODO: optimize
-        for (int i = 0; i < 1; i++) {
+
+        for (int i = 0; i < 2; i++) {
             int fromBoardIdx = board_dis(gen);
-            board fromBoard = prev_board[fromBoardIdx];
+            board& fromBoard = curr_board[fromBoardIdx];
             int fromDim = fromBoard.dim;
 
-            std::uniform_int_distribution<int> fromAgent_dis(0, (fromDim*fromDim-1));
+            std::uniform_int_distribution<int> fromAgent_dis(0, (fromDim * fromDim - 1));
             int agentfromBoardIdx = fromAgent_dis(gen);
             int toBoardIdx = whereToMove(weight, gen);
-            board toBoard = prev_board[toBoardIdx];
+            board& toBoard = curr_board[toBoardIdx];
             int targetDim = toBoard.dim;
 
-            std::uniform_int_distribution<int> targetAgent_dis(0, (targetDim*targetDim-1));
+            std::uniform_int_distribution<int> targetAgent_dis(0, (targetDim * targetDim - 1));
             int agentToBoardIdx = targetAgent_dis(gen);
             swap(fromBoard, toBoard, agentfromBoardIdx, agentToBoardIdx);
             updateBoard(fromBoard, toBoard, fromBoard.agents[agentfromBoardIdx], toBoard.agents[agentToBoardIdx]);
-         }
-            for (int i = 0; i < comm_names.size(); i++)
-            {
-                step(prev_board[i], curr_board[i], gen, t);
-                print_board(prev_board[i], t);
-            }
+        }
+        for (int i = 0; i < comm_names.size(); i++)
+        {
+            step(prev_board[i], curr_board[i], gen, t);
+            print_board(prev_board[i], t);
+        }
+
+
         /*uppsala_susp.push_back(curr_board[0].sus);
         uppsala_remo.push_back(curr_board[0].inf);
         uppsala_infe.push_back(curr_board[0].rem);
