@@ -1,7 +1,6 @@
 #pragma once
 #include "parameters.hh"
 #include <vector>
-#include <list>
 #include <atomic>
 
 

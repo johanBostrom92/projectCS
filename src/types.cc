@@ -1,6 +1,5 @@
 #include "types.hh"
 #include <random>
-#include <numeric>
 
 board::board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type> agent_types)
     : dim(dim),
@@ -53,8 +52,6 @@ board::board(unsigned int dim, unsigned int initial_infections, const std::vecto
             cumulative_weight += type.weight;
         }
     }
-
-    // std::iota(unvaccinated_agents.begin(), unvaccinated_agents.end(), 0);
 }
 
 board::board(board&& other) {
