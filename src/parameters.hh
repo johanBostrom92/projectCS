@@ -7,8 +7,12 @@
 #define INFECTION_PROBABILITY 25 //Probability for an agent to infect another
 #define MAKE_ASYM 50 //The probability that an infected individual is asymptomatic
 #define ASYM_INF_PROB 10 //The probability for asymptomatic carriers to infect others
+
 #define VACCINATION_RATE 28 //The time it takes for the vaccine to work
 #define VACCINATION_EFFICACY 75 //The efficiency of the vaccine
+#define VACCINATION_START 10     // The time at which to begin vaccinating people
+#define VACCINATIONS_PER_DAY 5000  // The number of people we can vaccinate per day
+
 #define DIM 7 //The population of the community
 #define MAX_TIME 10 //The amount of timesteps to run the simulation
 #define STARTER_AGENTS 1 //The amount of agents which starts the simulation infected
@@ -36,3 +40,5 @@ struct agent_type {
 static const std::vector<agent_type> AGENT_TYPES = {
     agent_type{ INFECTION_RADIUS, 0, 1 }
 };
+
+static_assert(DIM >= INFECTION_RADIUS, "The infection radius cannot be greater than the board dimension");

@@ -8,7 +8,10 @@ board::board(unsigned int dim, unsigned int initial_infections, const std::vecto
     rem(0),
     inf(initial_infections),
     asymp(0),
-    vacc(0){
+    vacc(0),
+    vaccination_weights(dim*dim, 1),
+    vaccination_weight_sum(dim*dim),
+    vaccinations_started(0){
 
     std::default_random_engine rand_generator;
 
@@ -62,6 +65,9 @@ board::board(const board& other) {
 board& board::operator=(board&& other) {
     if (this != &other) {
         this->agents = std::move(other.agents);
+        this->vaccination_weights = std::move(other.vaccination_weights);
+        this->vaccination_weight_sum = other.vaccination_weight_sum.load();
+        this->vaccinations_started = other.vaccinations_started.load();
         this->dim = other.dim;
         other.dim = 0;
 
@@ -77,6 +83,9 @@ board& board::operator=(board&& other) {
 board& board::operator=(const board& other) {
     if (&other != this) {
         this->agents = other.agents;
+        this->vaccination_weights = other.vaccination_weights;
+        this->vaccination_weight_sum = other.vaccination_weight_sum.load();
+        this->vaccinations_started = other.vaccinations_started.load();
         this->dim = other.dim;
 
         this->sus = other.sus.load();

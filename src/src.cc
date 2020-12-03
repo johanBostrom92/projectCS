@@ -13,8 +13,9 @@
 #include <chrono>
 #include <tuple>
 #include <algorithm>
+#include <cassert>
 
-#define PLOT true  
+#define PLOT true
 
 
 
@@ -43,7 +44,7 @@ void print_board(board& b, std::string name, int t) {
 
 void visualization_of_board(board b){
     if (PLOT){
-    
+
         //Transform array index to X,Y cordinates as col,row
 
         // X,Y for S
@@ -66,7 +67,7 @@ void visualization_of_board(board b){
         std::vector<double> col_r;
         std::vector<double> row_r;
 
-  
+
         for(int i = 0; i < DIM*DIM; i++){
             if (b.agents[i].status == S) {
                 row_s.push_back(i / DIM);
@@ -94,22 +95,22 @@ void visualization_of_board(board b){
 
         }
         {
-            //scatterplots using matplot++ on converted array -> XY cordinates. 
+            //scatterplots using matplot++ on converted array -> XY cordinates.
             using namespace matplot;
-            
-            int size = 8; //TODO fix dynamical size depending on table DIM size. 
-        
+
+            int size = 8; //TODO fix dynamical size depending on table DIM size.
+
             //dummy algoritm
             // set size of graph window
-            //based on DIM calculate amount of circles given a radius 
-            // set size as calculated radius 
+            //based on DIM calculate amount of circles given a radius
+            // set size as calculated radius
 
             hold(on);
             if (!col_s.empty()) {
                 auto scat_s = scatter(col_s, row_s, size);
                 scat_s->marker_color({ 0, 0, 0 });
                 scat_s->marker_face_color({ 0.2, 0.4, 1 });
-            } 
+            }
 
             if (!col_a.empty()) {
                 auto scat_a = scatter(col_a, row_a, size);
@@ -122,13 +123,13 @@ void visualization_of_board(board b){
                 scat_v->marker_color({ 0, 0, 0 });
                 scat_v->marker_face_color({ 0.84, 0.733, 0.36 });
             }
-        
+
             if (!col_i.empty()){
                 auto scat_i = scatter(col_i, row_i, size);
                 scat_i->marker_color({ 0, 0, 0 });
                 scat_i->marker_face_color({ 1, 0, 0 });
             }
-        
+
             if (!col_r.empty()) {
                 auto scat_r = scatter(col_r, row_r, size);
                 scat_r->marker_color({ 0, 0, 0 });
@@ -227,6 +228,27 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     int vacc_check = vacc_dis(gen);
                     if (vacc_check < VACCINATION_EFFICACY) {
                         //Congrats! You're vaccinated!
+                        // TODO: handle A and I specially?
+                        switch (currentSelf.status) {
+                            case S:
+                                current.sus--;
+                                break;
+                            case A:
+                                current.asymp--;
+                                break;
+                            case I:
+                                current.inf--;
+                                break;
+                            case V:
+                                current.vacc--;
+                                break;
+                            case R:
+                                current.rem--;
+                                break;
+                            default:
+                                std::cout << "WARN: Unknown agent status: " << currentSelf.status << std::endl;
+                                break;
+                        }
                         currentSelf.status = V;
                         current.vacc++;
                         continue;
@@ -234,7 +256,6 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     else {
                         //Better luck next time!
                         //currentSelf.vaccination_progress = false;
-                        currentSelf.vaccination_rate = VACCINATION_RATE;
                     }
                 }
             }
@@ -243,6 +264,8 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                 if (currentSelf.recovery_rate == 0) {
                     if (self.status == I) {//Infected only decreased if carrier was not asymptomatic
                         current.inf--;
+                    } else if (self.status == A) {
+                        current.asymp--;
                     }
                     currentSelf.status = R;
                     current.rem++;
@@ -288,9 +311,9 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     agent& other = previous.agents[y_other * DIM + x_other];
                     agent& otherCurr = current.agents[y_other * DIM + x_other];
 
-                    if (other.status == S && otherCurr.status != I && otherCurr.status != A && otherCurr.status != V) { //If neighbour is susceptible
+                    if (other.status == S && otherCurr.status == S) { //If neighbour is susceptible
                         infect(self, otherCurr, gen, current);
-                    } 
+                    }
 
 
                     else {
@@ -319,7 +342,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 
                     agent& other = previous.agents[y_other * DIM + x_other];
                     agent& otherCurr = current.agents[y_other * DIM + x_other];
-                    if (other.status == S && otherCurr.status != I && otherCurr.status != A && otherCurr.status != V) { //If neighbour is susceptible
+                    if (other.status == S && otherCurr.status == S) { //If neighbour is susceptible
                         infect(self, otherCurr, gen, current);
                     }
 
@@ -334,6 +357,109 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
     previous = current;
 }
 
+#define STATUS_TO_WEIGHT(s) ((s) == I ? 1 : 0)
+
+/**
+ * Updates all vaccination weights for a board, to determine who should be more
+ * or less likely to receive a vaccine. This is based on the number of infected agents within
+ * INFECTION_RADIUS of each agent.
+ * TODO: make it possible to customize the strategy for how the weights are chosen
+ */
+void update_vaccination_weights(board& b) {
+    b.vaccination_weight_sum = 0;
+    std::vector<unsigned int> tmp(b.vaccination_weights.size());
+
+    // Essentially, this is a box blur, which we can separate into one pass for each axis
+    // (we first blur on the x axis and store it to tmp, then blur tmp on the y axis and store it back to the board)
+
+    #pragma omp parallel for
+    for (int y = 0; y < b.dim; y++) {
+        unsigned int sum = 0;
+        for (int x_box = 0; x_box < INFECTION_RADIUS; x_box++) {
+            sum += STATUS_TO_WEIGHT(b.agents[y*b.dim + x_box].status);
+        }
+        for (int x = 0; x < b.dim; x++) {
+            if (x + INFECTION_RADIUS < b.dim) {
+                sum += STATUS_TO_WEIGHT(b.agents[y*b.dim + x + INFECTION_RADIUS].status);
+            }
+            tmp[y*b.dim + x] = sum;
+            if (x - INFECTION_RADIUS >= 0) {
+                sum -= STATUS_TO_WEIGHT(b.agents[int(y*b.dim) + x - INFECTION_RADIUS].status);
+            }
+        }
+    }
+    #pragma omp parallel for
+    for (int x = 0; x < b.dim; x++) {
+        unsigned int sum = 0;
+        for (int y_box = 0; y_box < INFECTION_RADIUS; y_box++) {
+            sum += tmp[y_box*b.dim + x];
+        }
+        for (int y = 0; y < b.dim; y++) {
+            if (y + INFECTION_RADIUS < b.dim) {
+                sum += tmp[(y + INFECTION_RADIUS)*b.dim + x];
+            }
+            int idx = y*b.dim + x;
+            int weight = 1 + sum;
+            if (b.agents[idx].status == V || b.agents[idx].vaccination_progress) {
+                weight = 0;
+            }
+            b.vaccination_weights[idx] = weight;
+            b.vaccination_weight_sum.fetch_add(weight, std::memory_order_acq_rel);
+            if (y - INFECTION_RADIUS >= 0) {
+                sum -= tmp[(y - INFECTION_RADIUS)*int(b.dim) + x];
+            }
+        }
+    }
+}
+
+/**
+ * Vaccinates a number of agents in the board, based on the board's vaccination weights
+ * @param board The board to perform vaccinations in
+ * @param n_vaccinations The number of vaccinations to perform
+ */
+void vaccinate(board& b, unsigned int n_vaccinations, std::mt19937_64& gen) {
+    // Make sure we don't perform more vaccinations than there are unvaccinated agents
+    n_vaccinations = std::min((size_t) n_vaccinations, b.agents.size() - b.vaccinations_started);
+    if (n_vaccinations == 0 || b.vaccination_weight_sum == 0) {
+        return;
+    }
+
+    // For each agent, compute the combined weight of it and all agents with a lower index
+    // This lets us later use lower_bound to do a binary search for the agent to vaccinate
+    std::vector<unsigned int> cumulative_weights(b.agents.size());
+    unsigned int weight_sum = 0;
+    for(int i = 0; i < b.agents.size(); i++) {
+        weight_sum += b.vaccination_weights[i];
+        cumulative_weights[i] = weight_sum;
+    }
+    assert(cumulative_weights[b.agents.size() - 1] = b.vaccination_weight_sum);
+
+    std::uniform_int_distribution<int> dis(1, (int) b.vaccination_weight_sum); // Generates (cumulative) weight values determining who gets vaccinated
+    std::vector<std::atomic_flag> vaccinated(b.agents.size());  // Stores which agents have been vaccinated this round
+    unsigned int collisions = 0;
+
+    #pragma omp parallel for
+    for (int i = 0; i < n_vaccinations; i++) {
+        int n = dis(gen);
+        // Finds the first agent with cumulative weight greater than n
+        auto it = std::lower_bound(cumulative_weights.begin(), cumulative_weights.end(), n);
+        unsigned int agent = it - cumulative_weights.begin();
+        // Atomically check if this agent has been vaccinated this round
+        if (!vaccinated[agent].test_and_set()) {
+            vaccinate(b.agents[agent]);
+            b.vaccinations_started.fetch_add(1, std::memory_order_acq_rel);
+            b.vaccination_weight_sum.fetch_sub(b.vaccination_weights[agent], std::memory_order_acq_rel);
+            b.vaccination_weights[agent] = 0;
+        } else {
+            // If it's been vaccinated, we will need to do it over
+            collisions++;
+        }
+    }
+    if (collisions > 0) {
+        // Redo the vaccinations that collided. It might be better to use a collision-free algorithm here.
+        vaccinate(b, collisions, gen);
+    }
+}
 
 int main() {
     std::cout << "kom hit: 1";
@@ -359,16 +485,17 @@ int main() {
     std::vector<double> sthlm_vacc = {};
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
-    { //Loop tracking 
+    { //Loop tracking
         std::cout << "kom hit: ";
-        
-        visualization_of_board(uppsala_curr);
-        
-        
-        // TODO: optimize
 
+        visualization_of_board(uppsala_curr);
 
         step(uppsala_prev, uppsala_curr, gen, t);
+        if (t > VACCINATION_START) {
+            update_vaccination_weights(uppsala_curr);
+            vaccinate(uppsala_curr, VACCINATIONS_PER_DAY, gen);
+
+        }
 
         //step(sthlm_prev, sthlm_curr, gen, t);
         print_board(uppsala_prev, "Uppsala", t);
@@ -392,7 +519,7 @@ int main() {
 
 
         std::vector<std::vector<std::vector<double>>> plot_data{
-            { uppsala_susp, uppsala_remo, uppsala_infe },
+            { uppsala_susp, uppsala_remo, uppsala_infe, uppsala_asymp, uppsala_vacc },
             { sthlm_susp, sthlm_remo, sthlm_infe }
         };
 
