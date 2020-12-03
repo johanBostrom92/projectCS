@@ -10,12 +10,13 @@
 #define VACCINATION_RATE 28 //The time it takes for the vaccine to work
 #define VACCINATION_EFFICACY 75 //The efficiency of the vaccine
 #define DIM 7 //The population of the community
-#define MAX_TIME 10 //The amount of timesteps to run the simulation
+#define MAX_TIME 100 //The amount of timesteps to run the simulation
 #define STARTER_AGENTS 1 //The amount of agents which starts the simulation infected
 #define QUARANTINE_START 5 //The timestep until agents starts quarantining
 #define ENABLE_QUARANTINE false //The flag to enable quarantine
 #define LAMBDA 2.5  // How fast the INFECTION_RADIUS decrease in case of a lock down
 #define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
+#define PLOT true   // if we want to do plots (increases execution time drastically)
 
 /**
  * Defines a type of agent, by its infection radius and how often it should occur.
