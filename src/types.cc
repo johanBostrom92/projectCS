@@ -17,7 +17,6 @@ board::board(unsigned int dim, unsigned int initial_infections, const std::vecto
     // Generate initial infections
     std::uniform_int_distribution<int> dis(0, (dim*dim-1));
     int seeded = 0;
-    if (name == "Uppsala") {
         while (seeded != initial_infections) {
             int pz = dis(rand_generator);
             if (agents[pz].status != I) {
@@ -26,7 +25,6 @@ board::board(unsigned int dim, unsigned int initial_infections, const std::vecto
             }
 
         }
-    }
 
 
     // Get the sum of all type weights

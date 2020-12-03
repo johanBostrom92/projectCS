@@ -5,7 +5,7 @@
 #include <string>
 
 enum agent_status {
-    S, A, I, V, R, J
+    S, A, I, V, R
 };
 
 /**
@@ -18,6 +18,7 @@ struct agent {
     int recovery_rate = RECOVERY_RATE;
     bool vaccination_progress = false;
     int vaccination_rate = VACCINATION_RATE;
+    bool vaccination_tried = false;
 };
 
 /**

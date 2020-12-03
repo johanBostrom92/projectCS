@@ -37,7 +37,7 @@ void swap(board& fromBoard, board& toBoard, int fromIndex, int toIndex) {
     agent swap_agent = toBoard.agents[toIndex];
     toBoard.agents[toIndex] = fromBoard.agents[fromIndex];
     fromBoard.agents[fromIndex] = swap_agent;
-    std::cout << std::endl << "Swapped " << fromBoard.name << " :" << fromIndex << " with " << toBoard.name << ": " << toIndex << std::endl;
+    std::cout << std::endl << fromBoard.name << ":" << fromIndex << " <==> " << toBoard.name << ":" << toIndex << std::endl;
 }
 
 void vaccinate(agent& agent) {
@@ -94,8 +94,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     }
                     else {
                         //Better luck next time!
-                        //currentSelf.vaccination_progress = false;
-                        currentSelf.vaccination_rate = VACCINATION_RATE;
+                        currentSelf.vaccination_tried = true;
                     }
                 }
             }
@@ -106,7 +105,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                         current.inf--;
                     }
                     else if(self.status == A) {
-                        current.asymp--;
+                        current.asymp--; 
                     }
                     currentSelf.status = R;
                     current.rem++;
@@ -216,11 +215,13 @@ int whereToMove(std::vector<double> items, std::mt19937_64& gen) {
 
 
 
-void updateBoard(board& from, board& to, agent& agentFrom, agent& agentTo) {
+void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
     int agentFromA, agentFromS, agentFromV, agentFromI, agentFromR;
     agentFromA = agentFromS = agentFromV = agentFromI = agentFromR = 0;
     int agentToA, agentToS, agentToV, agentToI, agentToR;
     agentToA = agentToS = agentToV = agentToI = agentToR = 0;
+
+
     switch (agentFrom.status) {
         case S:
             agentFromS++;
@@ -263,29 +264,32 @@ void updateBoard(board& from, board& to, agent& agentFrom, agent& agentTo) {
             std::cout << "Unknown type!";
     }
 
-    from.sus -= agentFromS;
-    from.asymp -= agentFromA;
-    from.vacc -= agentFromV;
-    from.inf -= agentFromI;
-    from.rem -= agentFromR;
+    if (&from != &to) {
+        from.sus -= agentFromS;
+        from.asymp -= agentFromA;
+        from.vacc -= agentFromV;
+        from.inf -= agentFromI;
+        from.rem -= agentFromR;
 
-    to.sus -= agentToS;
-    to.asymp -= agentToA;
-    to.vacc -= agentToI;
-    to.inf -= agentToV;
-    to.rem -= agentToR;
+        to.sus -= agentToS;
+        to.asymp -= agentToA;
+        to.vacc -= agentToV;
+        to.inf -= agentToI;
+        to.rem -= agentToR;
 
-    from.sus += agentToS;
-    from.asymp += agentToA;
-    from.vacc += agentToV;
-    from.inf += agentToI;
-    from.rem += agentToR;
+        from.sus += agentToS;
+        from.asymp += agentToA;
+        from.vacc += agentToV;
+        from.inf += agentToI;
+        from.rem += agentToR;
 
-    to.sus += agentFromS;
-    to.asymp += agentFromA;
-    to.vacc += agentFromI;
-    to.inf += agentFromV;
-    to.rem += agentFromR;
+        to.sus += agentFromS;
+        to.asymp += agentFromA;
+        to.vacc += agentFromV;
+        to.inf += agentFromI;
+        to.rem += agentFromR;
+    }
+
 }
 
 int main() {
@@ -314,7 +318,6 @@ int main() {
 
     std::random_device rd;
     std::mt19937_64 gen(rd());
-
     std::vector<double> uppsala_susp = {};
     std::vector<double> uppsala_infe = {};
     std::vector<double> uppsala_remo = {};
@@ -339,14 +342,16 @@ int main() {
 
             std::uniform_int_distribution<int> fromAgent_dis(0, (fromDim * fromDim - 1));
             int agentfromBoardIdx = fromAgent_dis(gen);
+            agent agentFromBoard = fromBoard.agents[agentfromBoardIdx];
             int toBoardIdx = whereToMove(weight, gen);
             board& toBoard = curr_board[toBoardIdx];
             int targetDim = toBoard.dim;
 
             std::uniform_int_distribution<int> targetAgent_dis(0, (targetDim * targetDim - 1));
             int agentToBoardIdx = targetAgent_dis(gen);
+            agent agentToBoard = toBoard.agents[agentToBoardIdx];
             swap(fromBoard, toBoard, agentfromBoardIdx, agentToBoardIdx);
-            updateBoard(fromBoard, toBoard, fromBoard.agents[agentfromBoardIdx], toBoard.agents[agentToBoardIdx]);
+            updateBoard(fromBoard, toBoard, agentFromBoard, agentToBoard);
         }
         for (int i = 0; i < comm_names.size(); i++)
         {
