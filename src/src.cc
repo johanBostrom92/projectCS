@@ -72,6 +72,7 @@ void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b) {
 }
 
 void step(board& previous, board& current, std::mt19937_64& gen, int t) {
+std::vector<std::atomic_flag> infected(previous.agents.size());
 #ifdef _WIN32
 #pragma omp parallel for
 #else
@@ -79,6 +80,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 #endif
     for (int y = 0; y < current.dim; y++) {
         for (int x = 0; x < current.dim; x++) {
+
             agent& self = previous.agents[y * current.dim + x];
             agent& currentSelf = current.agents[y * current.dim + x];
             std::uniform_int_distribution<int> vacc_dis(0, 99);
@@ -94,7 +96,6 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     }
                     else {
                         //Better luck next time!
-                        currentSelf.vaccination_tried = true;
                     }
                 }
             }
@@ -151,7 +152,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
                     agent& other = previous.agents[y_other * current.dim + x_other];
                     agent& otherCurr = current.agents[y_other * current.dim + x_other];
 
-                    if (other.status == S && otherCurr.status != I && otherCurr.status != A && otherCurr.status != V) { //If neighbour is susceptible
+                    if (other.status == S && !infected[y_other * current.dim + x_other].test_and_set()) { //If neighbour is susceptible
                         infect(self, otherCurr, gen, current);
                     } 
 
@@ -182,7 +183,7 @@ void step(board& previous, board& current, std::mt19937_64& gen, int t) {
 
                     agent& other = previous.agents[y_other * current.dim + x_other];
                     agent& otherCurr = current.agents[y_other * current.dim + x_other];
-                    if (other.status == S && otherCurr.status != I && otherCurr.status != A && otherCurr.status != V) { //If neighbour is susceptible
+                    if (other.status == S && !infected[y_other * current.dim + x_other].test_and_set()) { //If neighbour is susceptible
                         infect(self, otherCurr, gen, current);
                     }
 
@@ -220,8 +221,6 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
     agentFromA = agentFromS = agentFromV = agentFromI = agentFromR = 0;
     int agentToA, agentToS, agentToV, agentToI, agentToR;
     agentToA = agentToS = agentToV = agentToI = agentToR = 0;
-
-
     switch (agentFrom.status) {
         case S:
             agentFromS++;
@@ -265,25 +264,25 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
     }
 
     if (&from != &to) {
-        from.sus -= agentFromS;
+        //from.sus -= agentFromS; Not needed
         from.asymp -= agentFromA;
         from.vacc -= agentFromV;
         from.inf -= agentFromI;
         from.rem -= agentFromR;
 
-        to.sus -= agentToS;
+        //to.sus -= agentToS;
         to.asymp -= agentToA;
         to.vacc -= agentToV;
         to.inf -= agentToI;
         to.rem -= agentToR;
 
-        from.sus += agentToS;
+        //from.sus += agentToS;
         from.asymp += agentToA;
         from.vacc += agentToV;
         from.inf += agentToI;
         from.rem += agentToR;
 
-        to.sus += agentFromS;
+        //to.sus += agentFromS;
         to.asymp += agentFromA;
         to.vacc += agentFromV;
         to.inf += agentFromI;
@@ -335,7 +334,7 @@ int main() {
     { //Loop tracking time
         // TODO: optimize
 
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 5; i++) {
             int fromBoardIdx = board_dis(gen);
             board& fromBoard = curr_board[fromBoardIdx];
             int fromDim = fromBoard.dim;
@@ -353,8 +352,10 @@ int main() {
             swap(fromBoard, toBoard, agentfromBoardIdx, agentToBoardIdx);
             updateBoard(fromBoard, toBoard, agentFromBoard, agentToBoard);
         }
+
         for (int i = 0; i < comm_names.size(); i++)
         {
+            prev_board[i] = curr_board[i];
             step(prev_board[i], curr_board[i], gen, t);
             print_board(prev_board[i], t);
         }
