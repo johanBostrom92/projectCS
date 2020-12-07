@@ -1,7 +1,7 @@
 #include "types.hh"
 #include <random>
 
-board::board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type> agent_types)
+board::board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type> agent_types, double weight, std::string name)
     : dim(dim),
     agents(dim*dim),
     sus(dim*dim - initial_infections),
@@ -9,6 +9,8 @@ board::board(unsigned int dim, unsigned int initial_infections, const std::vecto
     inf(initial_infections),
     asymp(0),
     vacc(0),
+    weight(weight),
+    name(name),
     vaccination_weights(dim*dim, 1),
     vaccination_weight_sum(dim*dim),
     vaccinations_started(0){
@@ -16,16 +18,17 @@ board::board(unsigned int dim, unsigned int initial_infections, const std::vecto
     std::default_random_engine rand_generator;
 
     // Generate initial infections
-    std::uniform_int_distribution<int> dis(0, (DIM*DIM-1));
+    std::uniform_int_distribution<int> dis(0, (dim*dim-1));
     int seeded = 0;
-    while (seeded != initial_infections) {
-        int pz = dis(rand_generator);
-        if (agents[pz].status != I) {
-            agents[pz].status = I;
-            seeded++;
+        while (seeded != initial_infections) {
+            int pz = dis(rand_generator);
+            if (agents[pz].status != I) {
+                agents[pz].status = I;
+                seeded++;
+            }
+
         }
 
-    }
 
     // Get the sum of all type weights
     double weight_sum = 0.0f;
@@ -69,6 +72,8 @@ board& board::operator=(board&& other) {
         this->vaccination_weight_sum = other.vaccination_weight_sum.load();
         this->vaccinations_started = other.vaccinations_started.load();
         this->dim = other.dim;
+        this->name = other.name;
+        this->weight = other.weight;
         other.dim = 0;
 
         this->sus = other.sus.load();
@@ -87,6 +92,8 @@ board& board::operator=(const board& other) {
         this->vaccination_weight_sum = other.vaccination_weight_sum.load();
         this->vaccinations_started = other.vaccinations_started.load();
         this->dim = other.dim;
+        this->name = other.name;
+        this->weight = other.weight;
 
         this->sus = other.sus.load();
         this->rem = other.rem.load();
