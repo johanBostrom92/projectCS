@@ -4,6 +4,15 @@
 #include <atomic>
 #include <string>
 
+
+/**
+ * The status one agent can have
+ * S = Susceptible - Not currently infected but can be by an Infected or Asymptotic agent
+ * A = Asymptotic - Currently infected but not showing symptoms, can infect Susceptible agents so they become either Infected or Asymptotic
+ * I = Infected - Currently infected and showing symptoms, can infect Susceptible agents so they become either Infected or Asymptotic
+ * V = Vaccinated - Currently vaccinated, cant infect nor be infected
+ * R = Recovered - Has been infected but recovered, cant infect nor be infected.
+ */
 enum agent_status {
     S, A, I, V, R
 };
@@ -34,6 +43,9 @@ struct board {
     std::atomic_int inf;
     std::atomic_int asymp;
     std::atomic_int vacc;
+    std::vector<unsigned int> vaccination_weights;
+    std::atomic_uint vaccination_weight_sum;
+    std::atomic_uint vaccinations_started;
 
     /**
      * Creates a new square board
