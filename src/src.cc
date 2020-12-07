@@ -560,6 +560,28 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
 
 }
 
+void moveAgents(std::vector<board> curr_board, std::mt19937_64& gen, int agents, std::vector<double> weight) {
+    std::uniform_int_distribution<int> board_dis(0, curr_board.size() - 1);
+    for (int i = 0; i < agents; i++) {
+        int fromBoardIdx = board_dis(gen);
+        board& fromBoard = curr_board[fromBoardIdx];
+        int fromDim = fromBoard.dim;
+
+        std::uniform_int_distribution<int> fromAgent_dis(0, (fromDim * fromDim - 1));
+        int agentfromBoardIdx = fromAgent_dis(gen);
+        agent agentFromBoard = fromBoard.agents[agentfromBoardIdx];
+        int toBoardIdx = whereToMove(weight, gen);
+        board& toBoard = curr_board[toBoardIdx];
+        int targetDim = toBoard.dim;
+
+        std::uniform_int_distribution<int> targetAgent_dis(0, (targetDim * targetDim - 1));
+        int agentToBoardIdx = targetAgent_dis(gen);
+        agent agentToBoard = toBoard.agents[agentToBoardIdx];
+        swap(fromBoard, toBoard, agentfromBoardIdx, agentToBoardIdx);
+        updateBoard(fromBoard, toBoard, agentFromBoard, agentToBoard);
+    }
+}
+
 int main() {
 
     std::vector<std::string> comm_names = { "Uppsala", "Stockholm" };
@@ -597,43 +619,27 @@ int main() {
     std::vector<double> sthlm_asymp = {};
     std::vector<double> sthlm_vacc = {};*/
 
-    std::uniform_int_distribution<int> board_dis(0, comm_names.size()-1);
+  
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking
-        std::cout << "kom hit: ";
 
-        for (int i = 0; i < 5; i++) {
-            int fromBoardIdx = board_dis(gen);
-            board& fromBoard = curr_board[fromBoardIdx];
-            int fromDim = fromBoard.dim;
 
-            std::uniform_int_distribution<int> fromAgent_dis(0, (fromDim * fromDim - 1));
-            int agentfromBoardIdx = fromAgent_dis(gen);
-            agent agentFromBoard = fromBoard.agents[agentfromBoardIdx];
-            int toBoardIdx = whereToMove(weight, gen);
-            board& toBoard = curr_board[toBoardIdx];
-            int targetDim = toBoard.dim;
-
-            std::uniform_int_distribution<int> targetAgent_dis(0, (targetDim * targetDim - 1));
-            int agentToBoardIdx = targetAgent_dis(gen);
-            agent agentToBoard = toBoard.agents[agentToBoardIdx];
-            swap(fromBoard, toBoard, agentfromBoardIdx, agentToBoardIdx);
-            updateBoard(fromBoard, toBoard, agentFromBoard, agentToBoard);
-        }
 
         //visualization_of_board(uppsala_curr);
 
         for (int i = 0; i < comm_names.size(); i++)
         {
+            //The magic number is how many agents should swap each timestep.
+            moveAgents(curr_board, gen, 2, weight);
             prev_board[i] = curr_board[i];
             step(prev_board[i], curr_board[i], gen, t);
-            print_board(prev_board[i], t);
-            if (t > VACCINATION_START) {
-                update_vaccination_weights(curr_board[i]);
-                vaccinate(curr_board[i], VACCINATIONS_PER_DAY, gen);
+            print_board(prev_board[i], comm_names[i], t);
+            //if (t > VACCINATION_START) {
+            //    update_vaccination_weights(curr_board[i]);
+            //    vaccinate(curr_board[i], VACCINATIONS_PER_DAY, gen);
 
-            }
+            //}
         }
 
 
@@ -654,28 +660,28 @@ int main() {
 
     } // /for t
     {
-        using namespace matplot;
-
-
-        std::vector<std::vector<std::vector<double>>> plot_data{
-            { uppsala_susp, uppsala_remo, uppsala_infe, uppsala_asymp, uppsala_vacc },
-            { sthlm_susp, sthlm_remo, sthlm_infe }
-        };
-
-        std::vector<std::string> comm_names = { "Uppsala", "Stockholm" }; //A vector which contain community names
-
-        for (int i = 0; i < plot_data.size(); i++) {
-            auto f = figure();
-            auto ax = f->current_axes();
-            plot(ax, plot_data[i]);
-            title(ax, comm_names[i]);
-            xlabel(ax, "t (days)");
-            ylabel(ax, "population");
-#ifndef _WIN32 //Must be set in allcaps to work
-            legend(ax, {"s", "r", "i"});
-
-#endif
-        }
+//        using namespace matplot;
+//
+//
+//        std::vector<std::vector<std::vector<double>>> plot_data{
+//            { uppsala_susp, uppsala_remo, uppsala_infe, uppsala_asymp, uppsala_vacc },
+//            { sthlm_susp, sthlm_remo, sthlm_infe }
+//        };
+//
+//        std::vector<std::string> comm_names = { "Uppsala", "Stockholm" }; //A vector which contain community names
+//
+//        for (int i = 0; i < plot_data.size(); i++) {
+//            auto f = figure();
+//            auto ax = f->current_axes();
+//            plot(ax, plot_data[i]);
+//            title(ax, comm_names[i]);
+//            xlabel(ax, "t (days)");
+//            ylabel(ax, "population");
+//#ifndef _WIN32 //Must be set in allcaps to work
+//            legend(ax, {"s", "r", "i"});
+//
+//#endif
+//        }
 
        /* std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
