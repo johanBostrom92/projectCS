@@ -44,7 +44,7 @@ struct board {
     std::atomic_int asymp;
     std::atomic_int vacc;
     std::vector<unsigned int> vaccination_weights;
-    std::atomic_uint vaccination_weight_sum;
+    std::atomic_uint64_t vaccination_weight_sum;
     std::atomic_uint vaccinations_started;
 
     /**
