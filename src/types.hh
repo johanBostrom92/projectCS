@@ -3,6 +3,7 @@
 #include <vector>
 #include <atomic>
 #include <string>
+#include <array>
 
 
 /**
@@ -12,9 +13,13 @@
  * I = Infected - Currently infected and showing symptoms, can infect Susceptible agents so they become either Infected or Asymptotic
  * V = Vaccinated - Currently vaccinated, cant infect nor be infected
  * R = Recovered - Has been infected but recovered, cant infect nor be infected.
+ *
+ * WARNING: It is necessary for the code to work that all entries are given their default values (do not assign e.g. S=2),
+ * and that the STATES_COUNT entry is always last.
  */
 enum agent_status {
-    S, A, I, V, R
+    S, A, I, V, R,
+    STATES_COUNT // Keep this last, so it equals the number of states there are
 };
 
 /**
@@ -38,11 +43,7 @@ struct board {
     std::string name;
 
     std::vector<agent> agents;
-    std::atomic_int sus;
-    std::atomic_int rem;
-    std::atomic_int inf;
-    std::atomic_int asymp;
-    std::atomic_int vacc;
+    std::array<std::atomic_int, STATES_COUNT> status_counts;
     std::vector<unsigned int> vaccination_weights;
     std::atomic_uint64_t vaccination_weight_sum;
     std::atomic_uint vaccinations_started;

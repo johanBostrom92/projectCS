@@ -4,16 +4,17 @@
 board::board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type> agent_types, double weight, std::string name)
     : dim(dim),
     agents(dim*dim),
-    sus(dim*dim - initial_infections),
-    rem(0),
-    inf(initial_infections),
-    asymp(0),
-    vacc(0),
     weight(weight),
     name(name),
     vaccination_weights(dim*dim, 1),
     vaccination_weight_sum(dim*dim),
-    vaccinations_started(0){
+    vaccinations_started(0) {
+
+    for (int s = 0; s < STATES_COUNT; s++) {
+        status_counts[s] = 0;
+    }
+    status_counts[S] = dim*dim - initial_infections;
+    status_counts[I] = initial_infections;
 
     std::default_random_engine rand_generator;
 
@@ -76,11 +77,9 @@ board& board::operator=(board&& other) {
         this->weight = other.weight;
         other.dim = 0;
 
-        this->sus = other.sus.load();
-        this->rem = other.rem.load();
-        this->inf = other.inf.load();
-        this->asymp = other.asymp.load();
-        this->vacc = other.vacc.load();
+        for (int s = 0; s < STATES_COUNT; s++) {
+            this->status_counts[s] = other.status_counts[s].load();
+        }
     }
     return *this;
 }
@@ -95,11 +94,9 @@ board& board::operator=(const board& other) {
         this->name = other.name;
         this->weight = other.weight;
 
-        this->sus = other.sus.load();
-        this->rem = other.rem.load();
-        this->inf = other.inf.load();
-        this->asymp = other.asymp.load();
-        this->vacc = other.vacc.load();
+        for (int s = 0; s < STATES_COUNT; s++) {
+            this->status_counts[s] = other.status_counts[s].load();
+        }
     }
     return *this;
 }
