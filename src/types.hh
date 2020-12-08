@@ -44,6 +44,7 @@ struct board {
 
     std::vector<agent> agents;
     std::array<std::atomic_int, STATES_COUNT> status_counts;
+    std::atomic_uint total_infections;
     std::vector<unsigned int> vaccination_weights;
     std::atomic_uint64_t vaccination_weight_sum;
     std::atomic_uint vaccinations_started;

@@ -201,6 +201,7 @@ void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b) {
             to_infect.status = I;
         }
         b.status_counts[to_infect.status]++;
+        b.total_infections++;
     }
 }
 
@@ -503,14 +504,16 @@ void moveAgents(std::vector<board> curr_board, std::mt19937_64& gen, int agents,
 
 int main() {
 
-    std::vector<std::string> comm_names = { "Uppsala", "Stockholm" };
-    std::vector<double> weight = {             0.50,       0.50 };
+    std::vector<std::string> comm_names = { "Uppsala" };
+    std::vector<double> weight = {             1.0 };
     std::vector<int> dimensions = {};
-    int population = 10;
+    int population = 1000000;
     std::vector<board> prev_board = {};
     std::vector<board> curr_board = {};
     std::vector<std::vector<std::vector<unsigned int>>> status_history;
+    std::vector<unsigned int> infection_history;
 
+    unsigned int starting_infections = 0;
     for (int i = 0; i < comm_names.size(); i++)
     {
         int calc_dim = ceil(sqrt(weight[i] * population));
@@ -523,11 +526,20 @@ int main() {
         board curr = new_board;
         curr_board.push_back(curr);
 
+        // Every time step, stores one value per status type, and one for total infections
         status_history.push_back(std::vector(STATES_COUNT, std::vector<unsigned int>()));
         for (int s = 0; s < STATES_COUNT; s++) {
             status_history[i][s].push_back(curr_board[i].status_counts[s]);
         }
+        for (int i = 0; i < comm_names.size(); i++) {
+            for (int s = 0; s < STATES_COUNT; s++) {
+                status_history[i][s].push_back(curr_board[i].status_counts[s]);
+            }
+            status_history[i][STATES_COUNT].push_back(curr_board[i].total_infections);
+            starting_infections += curr_board[i].total_infections;
+        }
     }
+    infection_history.push_back(starting_infections);
 
     //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
@@ -547,7 +559,7 @@ int main() {
             moveAgents(curr_board, gen, 2, weight);
             prev_board[i] = curr_board[i];
             step(prev_board[i], curr_board[i], gen, t);
-            print_board(prev_board[i], comm_names[i], t);
+            // print_board(prev_board[i], comm_names[i], t);
             if (t > VACCINATION_START) {
                update_vaccination_weights(curr_board[i]);
                vaccinate(curr_board[i], VACCINATIONS_PER_DAY, gen);
@@ -556,11 +568,15 @@ int main() {
 
 
         // Save status counts
+        unsigned int total_infections = 0;
         for (int i = 0; i < comm_names.size(); i++) {
             for (int s = 0; s < STATES_COUNT; s++) {
                 status_history[i][s].push_back(curr_board[i].status_counts[s]);
             }
+            status_history[i][STATES_COUNT].push_back(curr_board[i].total_infections);
+            total_infections += curr_board[i].total_infections;
         }
+        infection_history.push_back(total_infections);
 
     } // /for t
     {
@@ -579,9 +595,16 @@ int main() {
 #ifndef _WIN32 //Must be set in allcaps to work
             legend(ax, {"i", "a", "s", "v", "r"});
 #endif
-       }
+        }
 
-       /* std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+        // Plot the total number of infections
+        auto f = figure();
+        auto ax = f->current_axes();
+        plot(ax, infection_history);
+        title(ax, "Cumulative infections (incl. asymptotic)");
+        xlabel(ax, "t (days)");
+        ylabel(ax, "Number of infections");
+        /* std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
         std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;*/
     }

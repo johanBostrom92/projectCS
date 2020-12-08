@@ -4,6 +4,7 @@
 board::board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type> agent_types, double weight, std::string name)
     : dim(dim),
     agents(dim*dim),
+    total_infections(initial_infections),
     weight(weight),
     name(name),
     vaccination_weights(dim*dim, 1),
@@ -69,6 +70,7 @@ board::board(const board& other) {
 board& board::operator=(board&& other) {
     if (this != &other) {
         this->agents = std::move(other.agents);
+        this->total_infections = other.total_infections.load();
         this->vaccination_weights = std::move(other.vaccination_weights);
         this->vaccination_weight_sum = other.vaccination_weight_sum.load();
         this->vaccinations_started = other.vaccinations_started.load();
@@ -87,6 +89,7 @@ board& board::operator=(board&& other) {
 board& board::operator=(const board& other) {
     if (&other != this) {
         this->agents = other.agents;
+        this->total_infections = other.total_infections.load();
         this->vaccination_weights = other.vaccination_weights;
         this->vaccination_weight_sum = other.vaccination_weight_sum.load();
         this->vaccinations_started = other.vaccinations_started.load();
