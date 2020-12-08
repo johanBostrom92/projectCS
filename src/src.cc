@@ -523,7 +523,7 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
         default:
             //Should not execute
             std::cout << "Unknown type!";
-   }
+}
 
     switch (agentTo.status) {
         case S:
@@ -616,7 +616,7 @@ int main() {
         prev_board.push_back(new_board);
         board curr = new_board;
         curr_board.push_back(curr);
-    }
+        }
 
     //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
@@ -654,48 +654,30 @@ int main() {
             //    vaccinate(curr_board[i], VACCINATIONS_PER_DAY, gen);
 
             //}
-        }
+            }
 
-
-        /*uppsala_susp.push_back(curr_board[0].sus);
-        uppsala_remo.push_back(curr_board[0].inf);
-        uppsala_infe.push_back(curr_board[0].rem);
-        uppsala_asymp.push_back(curr_board[0].asymp);
-        uppsala_vacc.push_back(curr_board[0].vacc);
-       
-        */
-        /* sthlm_susp.push_back(sthlm_curr.sus);
-        sthlm_remo.push_back(sthlm_curr.inf);
-        sthlm_infe.push_back(sthlm_curr.rem);
-
-        sthlm_asymp.push_back(sthlm_curr.asymp);
-        sthlm_vacc.push_back(sthlm_curr.vacc);*/
-
-
-    } // /for t
     {
-//        using namespace matplot;
-//
-//
-//        std::vector<std::vector<std::vector<double>>> plot_data{
-//            { uppsala_susp, uppsala_remo, uppsala_infe, uppsala_asymp, uppsala_vacc },
-//            { sthlm_susp, sthlm_remo, sthlm_infe }
-//        };
-//
-//        std::vector<std::string> comm_names = { "Uppsala", "Stockholm" }; //A vector which contain community names
-//
-//        for (int i = 0; i < plot_data.size(); i++) {
-//            auto f = figure();
-//            auto ax = f->current_axes();
-//            plot(ax, plot_data[i]);
-//            title(ax, comm_names[i]);
-//            xlabel(ax, "t (days)");
-//            ylabel(ax, "population");
-//#ifndef _WIN32 //Must be set in allcaps to work
-//            legend(ax, {"s", "r", "i"});
-//
-//#endif
-//        }
+       using namespace matplot;
+
+
+       std::vector<std::vector<std::vector<double>>> plot_data {
+           { uppsala_infe, uppsala_asymp, uppsala_susp, uppsala_vacc, uppsala_remo },
+       };
+
+       std::vector<std::string> comm_names = { "Uppsala", "Stockholm" }; //A vector which contain community names
+
+       for (int i = 0; i < plot_data.size(); i++) {
+           auto f = figure();
+           auto ax = f->current_axes();
+           area(ax, plot_data[i]);
+           title(ax, comm_names[i]);
+           xlabel(ax, "t (days)");
+           ylabel(ax, "population");
+#ifndef _WIN32 //Must be set in allcaps to work
+           legend(ax, {"i", "a", "s", "v", "r"});
+
+#endif
+       }
 
        /* std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
