@@ -455,9 +455,16 @@ void vaccinate(board& b, unsigned int n_vaccinations, std::mt19937_64& gen) {
         vaccinate(b, collisions, gen);
     }
 }
-int whereToMove(std::vector<double> items, std::mt19937_64& gen) {
-    std::uniform_real_distribution move_dist(0.0, 1.0);
-    double cumulative = 1;
+
+int weightRand(std::vector<double> items, std::mt19937_64& gen) {
+
+    double cumulative = 0;
+    for (int i = 0; i < items.size(); i++)
+    {
+        cumulative += items[i];
+    }
+
+    std::uniform_real_distribution move_dist(0.0, cumulative);
     double rand = move_dist(gen);
     for (int i = 0; i < items.size(); i++) {
         cumulative -= items[i];
@@ -480,17 +487,19 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
     to.status_counts[agentTo.status]--;
 }
 
-void moveAgents(std::vector<board> curr_board, std::mt19937_64& gen, int agents, std::vector<double> weight) {
-    std::uniform_int_distribution<int> board_dis(0, curr_board.size() - 1);
+}
+
+void moveAgents(std::vector<board> curr_board, std::mt19937_64& gen, int agents, std::vector<double> weight, std::vector<std::vector<double>> inter_weight) {
+
     for (int i = 0; i < agents; i++) {
-        int fromBoardIdx = board_dis(gen);
+        int fromBoardIdx = weightRand(weight, gen);
         board& fromBoard = curr_board[fromBoardIdx];
         int fromDim = fromBoard.dim;
 
         std::uniform_int_distribution<int> fromAgent_dis(0, (fromDim * fromDim - 1));
         int agentfromBoardIdx = fromAgent_dis(gen);
         agent agentFromBoard = fromBoard.agents[agentfromBoardIdx];
-        int toBoardIdx = whereToMove(weight, gen);
+        int toBoardIdx = weightRand(inter_weight[fromBoardIdx], gen);
         board& toBoard = curr_board[toBoardIdx];
         int targetDim = toBoard.dim;
 
@@ -504,10 +513,16 @@ void moveAgents(std::vector<board> curr_board, std::mt19937_64& gen, int agents,
 
 int main() {
 
-    std::vector<std::string> comm_names = { "Uppsala" };
-    std::vector<double> weight = {             1.0 };
+    std::vector<std::string> comm_names = { "Uppsala", "Stockholm", "Eskilstuna" }; //Provided by user
+    std::vector<double> weight = {             0.34,       0.33,       0.33 }; //Provided by user
+    std::vector<std::vector<double>> inter_weight = { {1.0, 0.7, 0.3}, {0.7, 1.0, 0.3}, {0.4, 0.6, 1.0} }; //Provided by user
+    //TODO: make it possible to choose wether to provide inter-community weights or not?
+
+    int population = 100; //Provided by user
+    
+    
     std::vector<int> dimensions = {};
-    int population = 1000000;
+    int population = 10;
     std::vector<board> prev_board = {};
     std::vector<board> curr_board = {};
     std::vector<std::vector<std::vector<unsigned int>>> status_history;
@@ -520,7 +535,6 @@ int main() {
         dimensions.push_back(calc_dim);
 
         board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, weight[i], comm_names[i]);
-
 
         prev_board.push_back(new_board);
         board curr = new_board;
@@ -553,11 +567,14 @@ int main() {
 
         //visualization_of_board(uppsala_curr);
 
+        
+        //The magic number is how many agents should swap each timestep.
+        moveAgents(curr_board, gen, 2, weight, inter_weight);
+
         for (int i = 0; i < comm_names.size(); i++)
         {
-            //The magic number is how many agents should swap each timestep.
-            moveAgents(curr_board, gen, 2, weight);
             prev_board[i] = curr_board[i];
+
             step(prev_board[i], curr_board[i], gen, t);
             // print_board(prev_board[i], comm_names[i], t);
             if (t > VACCINATION_START) {
