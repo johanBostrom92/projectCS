@@ -487,7 +487,6 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
     to.status_counts[agentTo.status]--;
 }
 
-}
 
 void moveAgents(std::vector<board> curr_board, std::mt19937_64& gen, int agents, std::vector<double> weight, std::vector<std::vector<double>> inter_weight) {
 
@@ -522,7 +521,7 @@ int main() {
     
     
     std::vector<int> dimensions = {};
-    int population = 10;
+
     std::vector<board> prev_board = {};
     std::vector<board> curr_board = {};
     std::vector<std::vector<std::vector<unsigned int>>> status_history;
@@ -545,13 +544,7 @@ int main() {
         for (int s = 0; s < STATES_COUNT; s++) {
             status_history[i][s].push_back(curr_board[i].status_counts[s]);
         }
-        for (int i = 0; i < comm_names.size(); i++) {
-            for (int s = 0; s < STATES_COUNT; s++) {
-                status_history[i][s].push_back(curr_board[i].status_counts[s]);
-            }
-            status_history[i][STATES_COUNT].push_back(curr_board[i].total_infections);
-            starting_infections += curr_board[i].total_infections;
-        }
+        starting_infections += curr_board[i].total_infections;
     }
     infection_history.push_back(starting_infections);
 
@@ -590,7 +583,6 @@ int main() {
             for (int s = 0; s < STATES_COUNT; s++) {
                 status_history[i][s].push_back(curr_board[i].status_counts[s]);
             }
-            status_history[i][STATES_COUNT].push_back(curr_board[i].total_infections);
             total_infections += curr_board[i].total_infections;
         }
         infection_history.push_back(total_infections);
