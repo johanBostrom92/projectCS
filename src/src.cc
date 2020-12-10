@@ -237,11 +237,6 @@ std::vector<std::atomic_flag> infected(previous.agents.size());
                         current.status_counts[V]++;
                         continue;
                     }
-                    else {
-                        //Better luck next time!
-                        //currentSelf.vaccination_progress = false;
-                        currentSelf.vaccination_rate = VACCINATION_RATE;
-                    }
                 }
             }
             if (self.status == I || self.status == A) { //The infected checks for susceptible neighbors within the box.
@@ -358,7 +353,7 @@ void update_vaccination_weights(board& b) {
         #pragma omp parallel for
         for (int y = 0; y < b.dim; y++) {
             unsigned int sum = 0;
-            for (int x_box = 0; x_box < INFECTION_RADIUS; x_box++) {
+            for (int x_box = 0; x_box < std::min(INFECTION_RADIUS, (int)b.dim-1); x_box++) {
                 sum += IS_INFECTED(b.agents[y*b.dim + x_box].status);
             }
             for (int x = 0; x < b.dim; x++) {
@@ -371,10 +366,10 @@ void update_vaccination_weights(board& b) {
                 }
             }
         }
-        unsigned int maxSum;
+        unsigned int maxSum = 0;
         for (int x = 0; x < b.dim; x++) {
             unsigned int sum = 0;
-            for (int y_box = 0; y_box < INFECTION_RADIUS; y_box++) {
+            for (int y_box = 0; y_box < std::min(INFECTION_RADIUS, (int)b.dim-1); y_box++) {
                 sum += tmp[y_box*b.dim + x];
             }
             for (int y = 0; y < b.dim; y++) {
@@ -488,7 +483,7 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
 }
 
 
-void moveAgents(std::vector<board> curr_board, std::mt19937_64& gen, int agents, std::vector<double> weight, std::vector<std::vector<double>> inter_weight) {
+void moveAgents(std::vector<board>& curr_board, std::mt19937_64& gen, int agents, const std::vector<double>& weight, const std::vector<std::vector<double>>& inter_weight) {
 
     for (int i = 0; i < agents; i++) {
         int fromBoardIdx = weightRand(weight, gen);
@@ -511,6 +506,8 @@ void moveAgents(std::vector<board> curr_board, std::mt19937_64& gen, int agents,
 }
 
 int main() {
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
 
     std::vector<std::string> comm_names = { "Uppsala", "Stockholm", "Eskilstuna" }; //Provided by user
     std::vector<double> weight = {             0.34,       0.33,       0.33 }; //Provided by user
@@ -534,7 +531,8 @@ int main() {
         int calc_dim = ceil(sqrt(weight[i] * population));
         dimensions.push_back(calc_dim);
 
-        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, weight[i], comm_names[i]);
+        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, comm_names[i], gen);
+        print_board(new_board, comm_names[i], 0);
 
         prev_board.push_back(new_board);
         board curr = new_board;
@@ -547,9 +545,6 @@ int main() {
     }
 
     //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking
@@ -569,8 +564,9 @@ int main() {
             step(prev_board[i], curr_board[i], gen, t);
             // print_board(prev_board[i], comm_names[i], t);
             if (t > VACCINATION_START) {
-               update_vaccination_weights(curr_board[i]);
-               vaccinate(curr_board[i], VACCINATIONS_PER_DAY, gen);
+                // TODO: we can optimize this by avoiding to update weights when there are no vaccinations left to do
+                update_vaccination_weights(curr_board[i]);
+                vaccinate(curr_board[i], VACCINATIONS_PER_DAY, gen);
             }
         }
 
