@@ -488,7 +488,7 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
 }
 
 
-void moveAgents(std::vector<board> curr_board, std::mt19937_64& gen, int agents, std::vector<double> weight, std::vector<std::vector<double>> inter_weight) {
+void moveAgents(std::vector<board>& curr_board, std::mt19937_64& gen, int agents, const std::vector<double>& weight, const std::vector<std::vector<double>>& inter_weight) {
 
     for (int i = 0; i < agents; i++) {
         int fromBoardIdx = weightRand(weight, gen);
