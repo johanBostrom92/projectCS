@@ -371,7 +371,7 @@ void update_vaccination_weights(board& b) {
                 }
             }
         }
-        unsigned int maxSum;
+        unsigned int maxSum = 0;
         for (int x = 0; x < b.dim; x++) {
             unsigned int sum = 0;
             for (int y_box = 0; y_box < INFECTION_RADIUS; y_box++) {
