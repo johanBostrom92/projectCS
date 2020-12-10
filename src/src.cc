@@ -237,11 +237,6 @@ std::vector<std::atomic_flag> infected(previous.agents.size());
                         current.status_counts[V]++;
                         continue;
                     }
-                    else {
-                        //Better luck next time!
-                        //currentSelf.vaccination_progress = false;
-                        currentSelf.vaccination_rate = VACCINATION_RATE;
-                    }
                 }
             }
             if (self.status == I || self.status == A) { //The infected checks for susceptible neighbors within the box.
@@ -571,8 +566,9 @@ int main() {
             step(prev_board[i], curr_board[i], gen, t);
             // print_board(prev_board[i], comm_names[i], t);
             if (t > VACCINATION_START) {
-               update_vaccination_weights(curr_board[i]);
-               vaccinate(curr_board[i], VACCINATIONS_PER_DAY, gen);
+                // TODO: we can optimize this by avoiding to update weights when there are no vaccinations left to do
+                update_vaccination_weights(curr_board[i]);
+                vaccinate(curr_board[i], VACCINATIONS_PER_DAY, gen);
             }
         }
 
