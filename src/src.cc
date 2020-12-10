@@ -511,15 +511,17 @@ void moveAgents(std::vector<board>& curr_board, std::mt19937_64& gen, int agents
 }
 
 int main() {
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
 
     std::vector<std::string> comm_names = { "Uppsala", "Stockholm", "Eskilstuna" }; //Provided by user
     std::vector<double> weight = {             0.34,       0.33,       0.33 }; //Provided by user
     std::vector<std::vector<double>> inter_weight = { {1.0, 0.7, 0.3}, {0.7, 1.0, 0.3}, {0.4, 0.6, 1.0} }; //Provided by user
     //TODO: make it possible to choose wether to provide inter-community weights or not?
 
-    int population = 100; //Provided by user
-    
-    
+    int population = 10; //Provided by user
+
+
     std::vector<int> dimensions = {};
 
     std::vector<board> prev_board = {};
@@ -533,7 +535,8 @@ int main() {
         int calc_dim = ceil(sqrt(weight[i] * population));
         dimensions.push_back(calc_dim);
 
-        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, weight[i], comm_names[i]);
+        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, comm_names[i], gen);
+        print_board(new_board, comm_names[i], 0);
 
         prev_board.push_back(new_board);
         board curr = new_board;
@@ -550,9 +553,6 @@ int main() {
 
     //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
-
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking
 
@@ -560,7 +560,7 @@ int main() {
 
         //visualization_of_board(uppsala_curr);
 
-        
+
         //The magic number is how many agents should swap each timestep.
         moveAgents(curr_board, gen, 2, weight, inter_weight);
 
