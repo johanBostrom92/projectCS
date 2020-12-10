@@ -358,7 +358,7 @@ void update_vaccination_weights(board& b) {
         #pragma omp parallel for
         for (int y = 0; y < b.dim; y++) {
             unsigned int sum = 0;
-            for (int x_box = 0; x_box < INFECTION_RADIUS; x_box++) {
+            for (int x_box = 0; x_box < std::min(INFECTION_RADIUS, (int)b.dim-1); x_box++) {
                 sum += IS_INFECTED(b.agents[y*b.dim + x_box].status);
             }
             for (int x = 0; x < b.dim; x++) {
@@ -374,7 +374,7 @@ void update_vaccination_weights(board& b) {
         unsigned int maxSum = 0;
         for (int x = 0; x < b.dim; x++) {
             unsigned int sum = 0;
-            for (int y_box = 0; y_box < INFECTION_RADIUS; y_box++) {
+            for (int y_box = 0; y_box < std::min(INFECTION_RADIUS, (int)b.dim-1); y_box++) {
                 sum += tmp[y_box*b.dim + x];
             }
             for (int y = 0; y < b.dim; y++) {
