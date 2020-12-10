@@ -514,7 +514,7 @@ int main() {
     std::vector<std::vector<double>> inter_weight = { {1.0, 0.7, 0.3}, {0.7, 1.0, 0.3}, {0.4, 0.6, 1.0} }; //Provided by user
     //TODO: make it possible to choose wether to provide inter-community weights or not?
 
-    int population = 10; //Provided by user
+    int population = 100; //Provided by user
 
 
     std::vector<int> dimensions = {};
