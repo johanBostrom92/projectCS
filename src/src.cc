@@ -518,16 +518,17 @@ int main() {
     //TODO: make it possible to choose wether to provide inter-community weights or not?
 
     int population = 100; //Provided by user
-    
-    
+
+
     std::vector<int> dimensions = {};
 
     std::vector<board> prev_board = {};
     std::vector<board> curr_board = {};
-    std::vector<std::vector<std::vector<unsigned int>>> status_history;
-    std::vector<unsigned int> infection_history;
 
-    unsigned int starting_infections = 0;
+    // Stores overall counts each step. This data is plotted after the simulation.
+    std::vector<std::vector<unsigned int>> status_history(STATES_COUNT, std::vector<unsigned int>(MAX_TIME+1, 0));
+    std::vector<unsigned int> infection_history(MAX_TIME+1, 0);
+
     for (int i = 0; i < comm_names.size(); i++)
     {
         int calc_dim = ceil(sqrt(weight[i] * population));
@@ -539,14 +540,11 @@ int main() {
         board curr = new_board;
         curr_board.push_back(curr);
 
-        // Every time step, stores one value per status type, and one for total infections
-        status_history.push_back(std::vector(STATES_COUNT, std::vector<unsigned int>()));
         for (int s = 0; s < STATES_COUNT; s++) {
-            status_history[i][s].push_back(curr_board[i].status_counts[s]);
+            status_history[s][0] += curr_board[i].status_counts[s];
         }
-        starting_infections += curr_board[i].total_infections;
+        infection_history[0] += curr_board[i].total_infections;
     }
-    infection_history.push_back(starting_infections);
 
     //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
@@ -560,7 +558,7 @@ int main() {
 
         //visualization_of_board(uppsala_curr);
 
-        
+
         //The magic number is how many agents should swap each timestep.
         moveAgents(curr_board, gen, 2, weight, inter_weight);
 
@@ -578,41 +576,37 @@ int main() {
 
 
         // Save status counts
-        unsigned int total_infections = 0;
         for (int i = 0; i < comm_names.size(); i++) {
             for (int s = 0; s < STATES_COUNT; s++) {
-                status_history[i][s].push_back(curr_board[i].status_counts[s]);
+                status_history[s][t+1] += curr_board[i].status_counts[s];
             }
-            total_infections += curr_board[i].total_infections;
+            infection_history[t+1] += curr_board[i].total_infections;
         }
-        infection_history.push_back(total_infections);
 
     } // /for t
     {
         using namespace matplot;
 
-        for (int i = 0; i < comm_names.size(); i++) {
-            std::vector<std::vector<unsigned int>> plot_data {
-                status_history[i][I], status_history[i][A], status_history[i][S], status_history[i][V], status_history[i][R]
-            };
-            auto f = figure();
-            auto ax = f->current_axes();
-            area(ax, plot_data);
-            title(ax, comm_names[i]);
-            xlabel(ax, "t (days)");
-            ylabel(ax, "population");
-#ifndef _WIN32 //Must be set in allcaps to work
-            legend(ax, {"i", "a", "s", "v", "r"});
-#endif
-        }
-
-        // Plot the total number of infections
+        std::vector<std::vector<unsigned int>> plot_data {
+            status_history[I], status_history[A], status_history[S], status_history[V], status_history[R]
+        };
         auto f = figure();
         auto ax = f->current_axes();
-        plot(ax, infection_history);
-        title(ax, "Cumulative infections (incl. asymptotic)");
+        area(ax, plot_data);
+        title(ax, "Agent count per status");
         xlabel(ax, "t (days)");
-        ylabel(ax, "Number of infections");
+        ylabel(ax, "population");
+#ifndef _WIN32 //Must be set in allcaps to work
+        legend(ax, {"i", "a", "s", "v", "r"});
+#endif
+
+        // Plot the total number of infections
+        auto f2 = figure();
+        auto ax2 = f2->current_axes();
+        plot(ax2, infection_history);
+        title(ax2, "Cumulative infections (incl. asymptotic)");
+        xlabel(ax2, "t (days)");
+        ylabel(ax2, "Number of infections");
         /* std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
         std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;*/
