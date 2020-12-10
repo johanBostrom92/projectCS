@@ -1,0 +1,2 @@
+On visualization: We have added a python script that visualize a bubble plot on geological map, with this approach we also have access to lat/long cordinates and can plot actual cities in a real country. 
+To facilitate this we have also taken in data from 293 swedish cities that can be used as reference material. 
