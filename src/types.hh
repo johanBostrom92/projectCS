@@ -2,6 +2,9 @@
 #include "parameters.hh"
 #include <vector>
 #include <atomic>
+#include <string>
+#include <array>
+#include <random>
 
 
 /**
@@ -11,9 +14,13 @@
  * I = Infected - Currently infected and showing symptoms, can infect Susceptible agents so they become either Infected or Asymptotic
  * V = Vaccinated - Currently vaccinated, cant infect nor be infected
  * R = Recovered - Has been infected but recovered, cant infect nor be infected.
+ *
+ * WARNING: It is necessary for the code to work that all entries are given their default values (do not assign e.g. S=2),
+ * and that the STATES_COUNT entry is always last.
  */
 enum agent_status {
-    S, A, I, V, R
+    S, A, I, V, R,
+    STATES_COUNT // Keep this last, so it equals the number of states there are
 };
 
 /**
@@ -26,28 +33,31 @@ struct agent {
     int recovery_rate = RECOVERY_RATE;
     bool vaccination_progress = false;
     int vaccination_rate = VACCINATION_RATE;
-
 };
 
 /**
  * A group of agents interacting in a grid
  */
 struct board {
-    unsigned int dim = DIM;
+    unsigned int dim;
+    std::string name;
+
     std::vector<agent> agents;
-    std::atomic_int sus;
-    std::atomic_int rem;
-    std::atomic_int inf;
-    std::atomic_int asymp;
-    std::atomic_int vacc;
+    std::array<std::atomic_int, STATES_COUNT> status_counts;
+    std::atomic_uint total_infections;
+    std::vector<unsigned int> vaccination_weights;
+    std::atomic_uint64_t vaccination_weight_sum;
+    std::atomic_uint vaccinations_started;
 
     /**
      * Creates a new square board
      * @param dim The size of the board along each axis
      * @param initial_infections The number of infected agents at creation
      * @param agent_types Specifications for what agents to populate the board with
+     * @param name A name describing the board
+     * @param gen Generator to use when generating initial infections
      */
-    board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type> agent_types);
+    board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type>& agent_types, const std::string& name, std::mt19937_64& gen);
 
     // std::atomic deletes these, so we need to redefine them.
     // Note that these are not atomic

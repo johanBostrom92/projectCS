@@ -1,0 +1,4 @@
+We had a meeting between the two teams to present and summarize on what the both teams have been doing. Discussing and taking questions about each other solutions.  
+We have implemented vaccination funcitonality in the project, there is room for more customization but the system is working.
+A rework of to our communitiy-system has been conducted, we can now feed the program with a list of communities and weights, which will be created and populated in the code. 
+It is also now possible for each agent to travel inside its own community and to other communities influenced by their respective weights.
