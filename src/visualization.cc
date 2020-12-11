@@ -30,27 +30,42 @@ void scatterplot(board b){
         std::vector<double> col_r;
         std::vector<double> row_r;
 
-        #pragma omp parallel for 
+        #pragma omp parallel for ordered
         for(int i = 0; i < DIM*DIM; i++){
             if (b.agents[i].status == S) {
-                row_s.push_back(i / DIM);
-                col_s.push_back(i % DIM);
+                #pragma omp ordered
+                {
+                    row_s.push_back(i / DIM);
+                    col_s.push_back(i % DIM);
+                }
             }
             else if (b.agents[i].status == A) {
-                row_a.push_back(i / DIM);
-                col_a.push_back(i % DIM);
+                #pragma omp ordered
+                {
+                    row_a.push_back(i / DIM);
+                    col_a.push_back(i % DIM);
+                }
             }
             else if (b.agents[i].status == V) {
-                row_v.push_back(i / DIM);
-                col_v.push_back(i % DIM);
+                #pragma omp ordered
+                {
+                    row_v.push_back(i / DIM);
+                    col_v.push_back(i % DIM);
+                }
             }
             else if (b.agents[i].status == I) {
-                row_i.push_back(i / DIM);
-                col_i.push_back(i % DIM);
+                #pragma omp ordered
+                {
+                    row_i.push_back(i / DIM);
+                    col_i.push_back(i % DIM);
+                }
             }
             else if (b.agents[i].status == R) {
-                row_r.push_back(i / DIM);
-                col_r.push_back(i % DIM);
+                #pragma omp ordered
+                {
+                    row_r.push_back(i / DIM);
+                    col_r.push_back(i % DIM);
+                }
             }
             else {
                 std::cout <<  "Error didn't find any match ";
