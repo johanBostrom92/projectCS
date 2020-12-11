@@ -258,6 +258,19 @@ int main() {
     std::vector<double> sthlm_asymp = {};
     std::vector<double> sthlm_vacc = {};
 
+    if( remove( "..\\lib\\built_covid_data\\coviddata.csv" ) != 0 ){
+        perror( "Error deleting file" );
+        } else {
+            puts( "File successfully deleted" );
+            std::ofstream file;
+
+            file.open("..\\lib\\built_covid_data\\coviddata.csv",std::ios::app);				
+
+            // Initialize first row
+            file << "city" << ";" << "popu" << ";" << "lat" << ";" << "long"  << ";" << "month" << ";" << "agent" << std::endl;
+            file.close();
+        }
+
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking 
     board copy_board = uppsala_curr;
@@ -278,7 +291,7 @@ int main() {
             step(uppsala_prev, uppsala_curr, gen, t);
 
             //step(sthlm_prev, sthlm_curr, gen, t);
-            print_board(uppsala_prev, "Uppsala", t);
+            //print_board(uppsala_prev, "Uppsala", t);
 
             uppsala_susp.push_back(uppsala_curr.sus);
             uppsala_remo.push_back(uppsala_curr.inf);

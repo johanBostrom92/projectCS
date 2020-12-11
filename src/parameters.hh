@@ -18,6 +18,7 @@
 #define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 #define PLOT true   // if we want to do plots (increases execution time drastically)
 
+
 /**
  * Defines a type of agent, by its infection radius and how often it should occur.
  * The infection radius is defined by a normal distribution.
