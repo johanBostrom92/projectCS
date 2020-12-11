@@ -132,49 +132,14 @@ void scatterplot(board b){
         }
 }
 
-
-void heatmap_plot(board b){
-        using namespace matplot;
-/*
-  std::vector<double> x;
-  std::vector<double> y;
-  std::vector<double> z; 
-   contourf(x, y, z, {2, 3}); //->contour_text(true)
-   */ 
-  // /* 
-   std::vector<std::vector<double>> x = {{1,2},{1,2}};
-    std::vector<std::vector<double>> y = {{1,2},{1,2}};
-    std::vector<std::vector<double>> z = {{5,2},{1,2}};
-
-  
-    contourf(x,y,z);
-   // */
-    show();
-}
-
-
-
-void geo_plot(){
-    using namespace matplot; 
-    std::vector<double> lat = {60};
-    std::vector<double> lon = {18}; 
-    std::vector<double> size = {(1)}; 
-    std::vector<double> type = {0}; 
-
-
-    geolimits({55, 75}, {10, 25});
-   auto log_size = transform(size, [](double x) { return log(x)/(10000000000000); });
-   std::cout << "size is: " << log_size[0]; 
-   hold(on);
-   auto gb = geobubble(lat, lon, log_size); 
-    
-
-    
-    // geolimits({45, 62}, {-155, -120});
-
-    show();
-}
-
+/**
+ * Returns the lat long of a location
+ * the location needs to exist in the cities_swe.csv file
+ * the location need to be written with {å,ä,ö} -> {aa, ae, oe}
+ * the function changes location to lower case so casing dosn't matter
+ * @param a string of the city name
+ * @return a tuple with (lat,long) coordinates
+ */
 std::tuple<double, double> get_lat_long(std::string city){
     using namespace std; 
     
@@ -205,7 +170,11 @@ std::tuple<double, double> get_lat_long(std::string city){
 return make_tuple(0,0);
 }
 
-
+/**
+ * Translates a agent status single character to a string
+ * @param a agent_status 
+ * @return a string of the translated status
+ */ 
 std::string translate_agent_status(agent_status status){
     if (status == S){
         return "Susceptable";
@@ -227,16 +196,14 @@ void write_data_to_csv(std::string city[], agent_status status[], int size[], in
     // create our file
     std::ofstream file;
 
-    file.open("..\\lib\\built_covid_data\\coviddata.csv",std::ios::app);				
+    file.open("..\\lib\\built_covid_data\\coviddata.csv",std::ios::app);
+   			
 
-    // Initialize first row
-    //file << "city" << ";" << "popu" << ";" << "lat" << ";" << "long"  << ";" << "month" << ";" << "agent" << std::endl;
-
-    for (int i = 0; i < size_of_array; i++){
-        std::cout << "kom hit " << i << std::endl;
+     for (int i = 0; i < size_of_array; i++){
+        //std::cout << "kom hit " << i << std::endl;
         std::tuple values = get_lat_long(city[i]);
         std::string trans_status = translate_agent_status(status[i]);
-        file << city[i] << ";" << size[i] << ";" << std::get<0>(values) << ";" << std::get<1>(values)  << ";" << time_unit[i] << ";" << trans_status << std::endl;
+        file << city[i] << ";" << size[i]/SCALE << ";" << std::get<0>(values) << ";" << std::get<1>(values)  << ";" << time_unit[i] << ";" << trans_status << std::endl;
 
     }
   
@@ -244,18 +211,16 @@ void write_data_to_csv(std::string city[], agent_status status[], int size[], in
     file.close();
 }
 
+
 void visualization_of_board(board b){
     if (PLOT){
-    //    heatmap_plot(b);
-    
-      //  geo_plot();
-    //scatterplot( b);
 
-
+    // Test data
     std::string test[4] = {"stockholm", "Uppsala", "Malmoe", "Goeteborg"};
     agent_status test2[4] = {A,S,S,A}; 
     int test_pop[4] = {10000, 5000, 666, 9999}; 
     int time_unit[4] = {1,2,3,4}; 
+
     write_data_to_csv(test, test2, test_pop, time_unit, 4);
   
     }

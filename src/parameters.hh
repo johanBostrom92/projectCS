@@ -17,7 +17,7 @@
 #define LAMBDA 2.5  // How fast the INFECTION_RADIUS decrease in case of a lock down
 #define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 #define PLOT true   // if we want to do plots (increases execution time drastically)
-
+#define SCALE 1 //scale for geobubble plot. 
 
 /**
  * Defines a type of agent, by its infection radius and how often it should occur.
