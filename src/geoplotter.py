@@ -13,12 +13,12 @@ df = pd.read_csv("..\\lib\\built_covid_data\\coviddata.csv", delimiter=';')
 df.head()
 
 
-#where all the magic happens
+#create the actual map
 fig = px.scatter_geo(df, size="popu" ,lat="lat", lon="long", hover_name="city", animation_frame="month", color="agent")
 
 
 fig.update_layout(
-        title_text = 'Corona spreading 2020 - update',
+        title_text = 'Corona spreading 2020',
         showlegend = True,
         geo = dict(
             scope = 'europe',
