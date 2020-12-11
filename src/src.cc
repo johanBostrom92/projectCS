@@ -169,15 +169,6 @@ void vaccinate(agent& agent) {
 }
 
 /**
- * Start the vaccination process of an agent from a specific board
- * @param b The board of which agent to vaccinate
- * @param idx The index of the agent in the board
- */
-void vaccinate(board& b, int idx) {
-    b.agents[idx].vaccination_progress = true;
-}
-
-/**
  * One agent which infects another agent
  * @param self The agent which will infect
  * @param to_infect The agent to infect
