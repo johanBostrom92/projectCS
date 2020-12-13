@@ -19,6 +19,8 @@
 #define PLOT false
 
 
+// Holds one random number generator for each thread
+static std::vector<std::mt19937_64> generators;
 
 /**
  * Prints the current board
@@ -167,15 +169,6 @@ void vaccinate(agent& agent) {
 }
 
 /**
- * Start the vaccination process of an agent from a specific board
- * @param b The board of which agent to vaccinate
- * @param idx The index of the agent in the board
- */
-void vaccinate(board& b, int idx) {
-    b.agents[idx].vaccination_progress = true;
-}
-
-/**
  * One agent which infects another agent
  * @param self The agent which will infect
  * @param to_infect The agent to infect
@@ -209,10 +202,9 @@ void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b) {
  * Take one step in the simulation
  * @param previous The previous state of the board
  * @param current The current state of the board
- * @param gen The current random number generator
  * @param t The current timestep
  */
-void step(board& previous, board& current, std::mt19937_64& gen, int t) {
+void step(board& previous, board& current, int t) {
 std::vector<std::atomic_flag> infected(previous.agents.size());
 #ifdef _WIN32
 #pragma omp parallel for
@@ -221,6 +213,7 @@ std::vector<std::atomic_flag> infected(previous.agents.size());
 #endif
     for (int y = 0; y < current.dim; y++) {
         for (int x = 0; x < current.dim; x++) {
+            std::mt19937_64& gen = generators[omp_get_thread_num()];
 
             agent& self = previous.agents[y * current.dim + x];
             agent& currentSelf = current.agents[y * current.dim + x];
@@ -407,7 +400,7 @@ void update_vaccination_weights(board& b) {
  * @param board The board to perform vaccinations in
  * @param n_vaccinations The number of vaccinations to perform
  */
-void vaccinate(board& b, unsigned int n_vaccinations, std::mt19937_64& gen) {
+void vaccinate(board& b, unsigned int n_vaccinations) {
     // Make sure we don't perform more vaccinations than there are unvaccinated agents
     n_vaccinations = std::min((size_t) n_vaccinations, b.agents.size() - b.vaccinations_started);
     if (n_vaccinations == 0 || b.vaccination_weight_sum == 0) {
@@ -430,6 +423,7 @@ void vaccinate(board& b, unsigned int n_vaccinations, std::mt19937_64& gen) {
 
     #pragma omp parallel for
     for (int i = 0; i < n_vaccinations; i++) {
+        std::mt19937_64& gen = generators[omp_get_thread_num()];
         uint64_t n = dis(gen);
         // Finds the first agent with cumulative weight greater than n
         auto it = std::lower_bound(cumulative_weights.begin(), cumulative_weights.end(), n);
@@ -447,7 +441,7 @@ void vaccinate(board& b, unsigned int n_vaccinations, std::mt19937_64& gen) {
     }
     if (collisions > 0) {
         // Redo the vaccinations that collided. It might be better to use a collision-free algorithm here.
-        vaccinate(b, collisions, gen);
+        vaccinate(b, collisions);
     }
 }
 
@@ -483,7 +477,8 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
 }
 
 
-void moveAgents(std::vector<board>& curr_board, std::mt19937_64& gen, int agents, const std::vector<double>& weight, const std::vector<std::vector<double>>& inter_weight) {
+void moveAgents(std::vector<board>& curr_board, int agents, const std::vector<double>& weight, const std::vector<std::vector<double>>& inter_weight) {
+    std::mt19937_64 gen = generators[0];
 
     for (int i = 0; i < agents; i++) {
         int fromBoardIdx = weightRand(weight, gen);
@@ -506,8 +501,15 @@ void moveAgents(std::vector<board>& curr_board, std::mt19937_64& gen, int agents
 }
 
 int main() {
+    // Create random generators
+    unsigned int n_threads;
+    // seems like we have to run omp_get_num_threads in a parallel region to get the actual number of threads
+    #pragma omp parallel
+    n_threads = omp_get_num_threads();
     std::random_device rd;
-    std::mt19937_64 gen(rd());
+    for (int i = 0; i < n_threads; i++) {
+        generators.push_back(std::mt19937_64(rd() + i));
+    }
 
     std::vector<std::string> comm_names = { "Uppsala", "Stockholm", "Eskilstuna" }; //Provided by user
     std::vector<double> weight = {             0.34,       0.33,       0.33 }; //Provided by user
@@ -531,8 +533,7 @@ int main() {
         int calc_dim = ceil(sqrt(weight[i] * population));
         dimensions.push_back(calc_dim);
 
-        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, comm_names[i], gen);
-        print_board(new_board, comm_names[i], 0);
+        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, comm_names[i], generators[0]);
 
         prev_board.push_back(new_board);
         board curr = new_board;
@@ -555,18 +556,18 @@ int main() {
 
 
         //The magic number is how many agents should swap each timestep.
-        moveAgents(curr_board, gen, 2, weight, inter_weight);
+        moveAgents(curr_board, 2, weight, inter_weight);
 
         for (int i = 0; i < comm_names.size(); i++)
         {
             prev_board[i] = curr_board[i];
 
-            step(prev_board[i], curr_board[i], gen, t);
+            step(prev_board[i], curr_board[i], t);
             // print_board(prev_board[i], comm_names[i], t);
             if (t > VACCINATION_START) {
                 // TODO: we can optimize this by avoiding to update weights when there are no vaccinations left to do
                 update_vaccination_weights(curr_board[i]);
-                vaccinate(curr_board[i], VACCINATIONS_PER_DAY, gen);
+                vaccinate(curr_board[i], VACCINATIONS_PER_DAY);
             }
         }
 
