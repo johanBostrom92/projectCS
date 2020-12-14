@@ -35,7 +35,7 @@ void print_board(board& b, std::string name, int t) {
         if (i % b.dim == 0) {
             std::endl(std::cout);
         }
-            std::cout << b.agents[i].status << " ";
+        std::cout << b.agents[i].status << " ";
 
     }
     std::cout << std::endl << std::endl << "Susceptible: " << b.status_counts[S] << std::endl << "Recovered: " << b.status_counts[R] << std::endl << "Infected: " << b.status_counts[I] << std::endl << "Asymptomatic: " << b.status_counts[A] << std::endl << "Vaccinated: " << b.status_counts[V];
@@ -104,7 +104,7 @@ void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b) {
  * @param t The current timestep
  */
 void step(board& previous, board& current, int t) {
-std::vector<std::atomic_flag> infected(previous.agents.size());
+    std::vector<std::atomic_flag> infected(previous.agents.size());
 #ifdef _WIN32
 #pragma omp parallel for
 #else
@@ -203,7 +203,7 @@ std::vector<std::atomic_flag> infected(previous.agents.size());
                     int y_rand = dis(gen);
                     int y_other = y_rand + y;
                     int x_other = x_rand + x;
-                            if (y_other < 0 || y_other >= current.dim || x_other < 0 || x_other >= current.dim || (x_other == x && y_other == y)) { //Checks for Bounds
+                    if (y_other < 0 || y_other >= current.dim || x_other < 0 || x_other >= current.dim || (x_other == x && y_other == y)) { //Checks for Bounds
                         goto Repeating; //Repeat failures
                                 //continue; //Skip failures
                     }
@@ -239,47 +239,49 @@ void update_vaccination_weights(board& b) {
     if constexpr (VACC_STRAT == vaccination_strategy::UNIFORM) {
         std::fill(b.vaccination_weights.begin(), b.vaccination_weights.end(), 1);
         b.vaccination_weight_sum = b.vaccination_weights.size();
-    } else if constexpr (VACC_STRAT == vaccination_strategy::HIGH_DENSITY || VACC_STRAT == vaccination_strategy::LOW_DENSITY) {
+    }
+    else if constexpr (VACC_STRAT == vaccination_strategy::HIGH_DENSITY || VACC_STRAT == vaccination_strategy::LOW_DENSITY) {
         // Essentially, this is a box blur, which we can separate into one pass for each axis
         // (we first blur on the x axis and store it to tmp, then blur tmp on the y axis and store it back to the board)
-        #pragma omp parallel for
+#pragma omp parallel for
         for (int y = 0; y < b.dim; y++) {
             unsigned int sum = 0;
-            for (int x_box = 0; x_box < std::min(INFECTION_RADIUS, (int)b.dim-1); x_box++) {
-                sum += IS_INFECTED(b.agents[y*b.dim + x_box].status);
+            for (int x_box = 0; x_box < std::min(INFECTION_RADIUS, (int)b.dim - 1); x_box++) {
+                sum += IS_INFECTED(b.agents[y * b.dim + x_box].status);
             }
             for (int x = 0; x < b.dim; x++) {
                 if (x + INFECTION_RADIUS < b.dim) {
-                    sum += IS_INFECTED(b.agents[y*b.dim + x + INFECTION_RADIUS].status);
+                    sum += IS_INFECTED(b.agents[y * b.dim + x + INFECTION_RADIUS].status);
                 }
-                tmp[y*b.dim + x] = sum;
+                tmp[y * b.dim + x] = sum;
                 if (x - INFECTION_RADIUS >= 0) {
-                    sum -= IS_INFECTED(b.agents[int(y*b.dim) + x - INFECTION_RADIUS].status);
+                    sum -= IS_INFECTED(b.agents[int(y * b.dim) + x - INFECTION_RADIUS].status);
                 }
             }
         }
         unsigned int maxSum = 0;
         for (int x = 0; x < b.dim; x++) {
             unsigned int sum = 0;
-            for (int y_box = 0; y_box < std::min(INFECTION_RADIUS, (int)b.dim-1); y_box++) {
-                sum += tmp[y_box*b.dim + x];
+            for (int y_box = 0; y_box < std::min(INFECTION_RADIUS, (int)b.dim - 1); y_box++) {
+                sum += tmp[y_box * b.dim + x];
             }
             for (int y = 0; y < b.dim; y++) {
                 if (y + INFECTION_RADIUS < b.dim) {
-                    sum += tmp[(y + INFECTION_RADIUS)*b.dim + x];
+                    sum += tmp[(y + INFECTION_RADIUS) * b.dim + x];
                 }
-                int idx = y*b.dim + x;
+                int idx = y * b.dim + x;
                 maxSum = std::max(sum, maxSum);
                 b.vaccination_weights[idx] = sum;
                 if (y - INFECTION_RADIUS >= 0) {
-                    sum -= tmp[(y - INFECTION_RADIUS)*int(b.dim) + x];
+                    sum -= tmp[(y - INFECTION_RADIUS) * int(b.dim) + x];
                 }
             }
         }
         for (int i = 0; i < b.agents.size(); i++) {
             if constexpr (VACC_STRAT == vaccination_strategy::HIGH_DENSITY) {
                 b.vaccination_weights[i] += 1;
-            } else {
+            }
+            else {
                 b.vaccination_weights[i] = 1 + maxSum - b.vaccination_weights[i];
             }
             b.vaccination_weight_sum.fetch_add(b.vaccination_weights[i], std::memory_order_acq_rel);
@@ -301,7 +303,7 @@ void update_vaccination_weights(board& b) {
  */
 void vaccinate(board& b, unsigned int n_vaccinations) {
     // Make sure we don't perform more vaccinations than there are unvaccinated agents
-    n_vaccinations = std::min((size_t) n_vaccinations, b.agents.size() - b.vaccinations_started);
+    n_vaccinations = std::min((size_t)n_vaccinations, b.agents.size() - b.vaccinations_started);
     if (n_vaccinations == 0 || b.vaccination_weight_sum == 0) {
         return;
     }
@@ -310,17 +312,17 @@ void vaccinate(board& b, unsigned int n_vaccinations) {
     // This lets us later use lower_bound to do a binary search for the agent to vaccinate
     std::vector<uint64_t> cumulative_weights(b.agents.size());
     unsigned int weight_sum = 0;
-    for(int i = 0; i < b.agents.size(); i++) {
+    for (int i = 0; i < b.agents.size(); i++) {
         weight_sum += b.vaccination_weights[i];
         cumulative_weights[i] = weight_sum;
     }
     assert(cumulative_weights[b.agents.size() - 1] = b.vaccination_weight_sum);
 
-    std::uniform_int_distribution<unsigned int> dis(1, (int) b.vaccination_weight_sum); // Generates (cumulative) weight values determining who gets vaccinated
+    std::uniform_int_distribution<unsigned int> dis(1, (int)b.vaccination_weight_sum); // Generates (cumulative) weight values determining who gets vaccinated
     std::vector<std::atomic_flag> vaccinated(b.agents.size());  // Stores which agents have been vaccinated this round
     unsigned int collisions = 0;
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < n_vaccinations; i++) {
         std::mt19937_64& gen = generators[omp_get_thread_num()];
         uint64_t n = dis(gen);
@@ -333,7 +335,8 @@ void vaccinate(board& b, unsigned int n_vaccinations) {
             b.vaccinations_started.fetch_add(1, std::memory_order_acq_rel);
             b.vaccination_weight_sum.fetch_sub(b.vaccination_weights[agent], std::memory_order_acq_rel);
             b.vaccination_weights[agent] = 0;
-        } else {
+        }
+        else {
             // If it's already been vaccinated, we will need to do this vaccination over
             collisions++;
         }
@@ -403,20 +406,23 @@ int main() {
     // Create random generators
     unsigned int n_threads;
     // seems like we have to run omp_get_num_threads in a parallel region to get the actual number of threads
-    #pragma omp parallel
+#pragma omp parallel
     n_threads = omp_get_num_threads();
     std::random_device rd;
     for (int i = 0; i < n_threads; i++) {
         generators.push_back(std::mt19937_64(rd() + i));
     }
 
-    std::vector<std::string> comm_names = { "Uppsala", "Stockholm", "Eskilstuna" }; //Provided by user
-    std::vector<double> weight = {             0.34,       0.33,       0.33 }; //Provided by user
-    std::vector<std::vector<double>> inter_weight = { {1.0, 0.7, 0.3}, {0.7, 1.0, 0.3}, {0.4, 0.6, 1.0} }; //Provided by user
-    //TODO: make it possible to choose wether to provide inter-community weights or not?
 
-    int population = 100; //Provided by user
 
+    //std::vector<std::string> comm_names = { "Uppsala", "Stockholm", "Eskilstuna" }; //Provided by user
+    //std::vector<double> weight = {             0.34,       0.33,       0.33 }; //Provided by user
+    //std::vector<std::vector<double>> inter_weight = { {1.0, 0.7, 0.3}, {0.7, 1.0, 0.3}, {0.4, 0.6, 1.0} }; //Provided by user
+    //int population = 100000; //Provided by user
+
+
+    //read_data_long = (cities, coordinates, population)
+    std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, std::vector<int>> csv_data = read_data_from_csv();
 
     std::vector<int> dimensions = {};
 
@@ -424,15 +430,18 @@ int main() {
     std::vector<board> curr_board = {};
 
     // Stores overall counts each step. This data is plotted after the simulation.
-    std::vector<std::vector<unsigned int>> status_history(STATES_COUNT, std::vector<unsigned int>(MAX_TIME+1, 0));
-    std::vector<unsigned int> infection_history(MAX_TIME+1, 0);
+    std::vector<std::vector<unsigned int>> status_history(STATES_COUNT, std::vector<unsigned int>(MAX_TIME + 1, 0));
+    std::vector<unsigned int> infection_history(MAX_TIME + 1, 0);
+
+    std::vector<std::string> comm_names = std::get<0>(csv_data);
+    std::vector<std::tuple<double, double>> coordinates = std::get<1>(csv_data);
 
     for (int i = 0; i < comm_names.size(); i++)
     {
-        int calc_dim = ceil(sqrt(weight[i] * population));
+        int population = std::get<2>(csv_data)[i];
+        int calc_dim = ceil(sqrt(population));
         dimensions.push_back(calc_dim);
-
-        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, comm_names[i], generators[0]);
+        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, comm_names[i], coordinates[i], generators[0]);
 
         prev_board.push_back(new_board);
         board curr = new_board;
@@ -444,34 +453,45 @@ int main() {
         infection_history[0] += curr_board[i].total_infections;
     }
 
+    for (int i = 0; i < curr_board.size(); i++)
+    {
+        std::cout << "Hello name : " << std::get<0>(curr_board[i].lat_long) << " " << std::get<1>(curr_board[i].lat_long) << std::endl;
+    }
     //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
-    if( remove( "..\\lib\\built_covid_data\\coviddata.csv" ) != 0 ){
-        perror( "Error deleting file" );
-        } else {
-            puts( "File successfully deleted" );
-            std::ofstream file;
+    if (remove("..\\lib\\built_covid_data\\coviddata.csv") != 0) {
+        perror("Error deleting file");
+    }
+    else {
+        puts("File successfully deleted");
+        std::ofstream file;
 
-            file.open("..\\lib\\built_covid_data\\coviddata.csv",std::ios::app);				
+        file.open("..\\lib\\built_covid_data\\coviddata.csv", std::ios::app);
 
-            // Initialize first row
-            file << "city" << ";" << "popu" << ";" << "lat" << ";" << "long"  << ";" << "month" << ";" << "agent" << std::endl;
-            file.close();
-        }
+        // Initialize first row
+        file << "city" << ";" << "popu" << ";" << "lat" << ";" << "long" << ";" << "month" << ";" << "agent" << std::endl;
+        file.close();
+    }
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
 
-           
-            
 
-        
-        
+
+
+
+
     { //Loop tracking
         if (t % 10 == 0) {
-                visualization_of_board(uppsala_curr);
-                }
+            for (int i = 0; i < curr_board.size(); i++)
+            {
+                visualization_of_board(curr_board[i], t);
+            }
+
+        }
         //The magic number is how many agents should swap each timestep.
-        moveAgents(curr_board, 2, weight, inter_weight);
+        //TODO: Create a variable for the NR of swapping agents
+        //TODO: add inter-weights and re-enable swapping!
+        //moveAgents(curr_board, 4, weight, inter_weight);
 
         for (int i = 0; i < comm_names.size(); i++)
         {
@@ -490,16 +510,16 @@ int main() {
         // Save status counts
         for (int i = 0; i < comm_names.size(); i++) {
             for (int s = 0; s < STATES_COUNT; s++) {
-                status_history[s][t+1] += curr_board[i].status_counts[s];
+                status_history[s][t + 1] += curr_board[i].status_counts[s];
             }
-            infection_history[t+1] += curr_board[i].total_infections;
+            infection_history[t + 1] += curr_board[i].total_infections;
         }
 
     } // /for t
     {
         using namespace matplot;
 
-        std::vector<std::vector<unsigned int>> plot_data {
+        std::vector<std::vector<unsigned int>> plot_data{
             status_history[I], status_history[A], status_history[S], status_history[V], status_history[R]
         };
         auto f = figure();
@@ -509,14 +529,14 @@ int main() {
         xlabel(ax, "t (days)");
         ylabel(ax, "population");
 #ifndef _WIN32 //Must be set in allcaps to work
-        legend(ax, {"i", "a", "s", "v", "r"});
+        legend(ax, { "i", "a", "s", "v", "r" });
 #endif
 
         // Plot the total number of infections
         auto f2 = figure();
         auto ax2 = f2->current_axes();
         plot(ax2, infection_history);
-        title(ax2, "Cumulative infections (incl. asymptotic)");
+        title(ax2, "Cumulative infections (incl. asymptomatic)");
         xlabel(ax2, "t (days)");
         ylabel(ax2, "Number of infections");
         /* std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();

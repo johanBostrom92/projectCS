@@ -4,10 +4,10 @@ import plotly.graph_objects as go
 
 
 #ref: https://plotly.com/python/bubble-maps/
-#ref: https://plotly.com/python-api-reference/generated/plotly.express.scatter_geo.html 
+#ref: https://plotly.com/python-api-reference/generated/plotly.express.scatter_geo.html
 
 
-#read a csv file and use semi-colon as delimeters for first row. 
+#read a csv file and use semi-colon as delimeters for first row.
 df = pd.read_csv("..\\lib\\built_covid_data\\coviddata.csv", delimiter=';')
 #df = pd.read_csv("C:\\Users\\Johan Boström\\Documents\GitHub\\projectCS\\lib\\built_covid_data\\coviddata.csv", delimiter=';')
 df.head()
@@ -18,7 +18,7 @@ fig = px.scatter_geo(df, size="popu" ,lat="lat", lon="long", hover_name="city", 
 
 
 fig.update_layout(
-        title_text = 'Corona spreading 2020',
+        title_text = 'Corona spread 20XX',
         showlegend = True,
         geo = dict(
             scope = 'europe',
@@ -27,4 +27,3 @@ fig.update_layout(
     )
 
 fig.show()
-

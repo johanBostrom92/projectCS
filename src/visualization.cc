@@ -7,129 +7,129 @@
 #include <iostream>
 
 
-void scatterplot(board b){
-     //Transform array index to X,Y cordinates as col,row
+void scatterplot(board b) {
+    //Transform array index to X,Y cordinates as col,row
 
-        // X,Y for S
-        std::vector<double> col_s;
-        std::vector<double> row_s;
+       // X,Y for S
+    std::vector<double> col_s;
+    std::vector<double> row_s;
 
-        // X,Y for A
-        std::vector<double> col_a;
-        std::vector<double> row_a;
+    // X,Y for A
+    std::vector<double> col_a;
+    std::vector<double> row_a;
 
-        // X,Y for V
-        std::vector<double> col_v;
-        std::vector<double> row_v;
+    // X,Y for V
+    std::vector<double> col_v;
+    std::vector<double> row_v;
 
-        // X,Y for I
-        std::vector<double> col_i;
-        std::vector<double> row_i;
+    // X,Y for I
+    std::vector<double> col_i;
+    std::vector<double> row_i;
 
-        // X,Y for R
-        std::vector<double> col_r;
-        std::vector<double> row_r;
+    // X,Y for R
+    std::vector<double> col_r;
+    std::vector<double> row_r;
 
-        #pragma omp parallel for ordered
-        for(int i = 0; i < DIM*DIM; i++){
-            if (b.agents[i].status == S) {
-                #pragma omp ordered
-                {
-                    row_s.push_back(i / DIM);
-                    col_s.push_back(i % DIM);
-                }
-            }
-            else if (b.agents[i].status == A) {
-                #pragma omp ordered
-                {
-                    row_a.push_back(i / DIM);
-                    col_a.push_back(i % DIM);
-                }
-            }
-            else if (b.agents[i].status == V) {
-                #pragma omp ordered
-                {
-                    row_v.push_back(i / DIM);
-                    col_v.push_back(i % DIM);
-                }
-            }
-            else if (b.agents[i].status == I) {
-                #pragma omp ordered
-                {
-                    row_i.push_back(i / DIM);
-                    col_i.push_back(i % DIM);
-                }
-            }
-            else if (b.agents[i].status == R) {
-                #pragma omp ordered
-                {
-                    row_r.push_back(i / DIM);
-                    col_r.push_back(i % DIM);
-                }
-            }
-            else {
-                std::cout <<  "Error didn't find any match ";
-            }
-
-        }
-        {
-            //scatterplots using matplot++ on converted array -> XY cordinates. 
-            using namespace matplot;
-            
-            int size = 8; //TODO fix dynamical size depending on table DIM size. 
-        
-            //dummy algoritm
-            // set size of graph window
-            //based on DIM calculate amount of circles given a radius 
-            // set size as calculated radius 
-
-            hold(on);
-            #pragma omp parallel sections
+#pragma omp parallel for ordered
+    for (int i = 0; i < DIM * DIM; i++) {
+        if (b.agents[i].status == S) {
+#pragma omp ordered
             {
-                #pragma omp section
-                {
-                    if (!col_s.empty()) {
-                        auto scat_s = scatter(col_s, row_s, size);
-                        scat_s->marker_color({ 0, 0, 0 });
-                        scat_s->marker_face_color({ 0.2, 0.4, 1 });
-                    } 
-                }
-                 #pragma omp section
-                {
-                    if (!col_a.empty()) {
-                        auto scat_a = scatter(col_a, row_a, size);
-                        scat_a->marker_color({ 0, 0, 0 });
-                        scat_a->marker_face_color({ 1, 0.3, 0.3 });
-                    }
-                }
+                row_s.push_back(i / DIM);
+                col_s.push_back(i % DIM);
+            }
+        }
+        else if (b.agents[i].status == A) {
+#pragma omp ordered
+            {
+                row_a.push_back(i / DIM);
+                col_a.push_back(i % DIM);
+            }
+        }
+        else if (b.agents[i].status == V) {
+#pragma omp ordered
+            {
+                row_v.push_back(i / DIM);
+                col_v.push_back(i % DIM);
+            }
+        }
+        else if (b.agents[i].status == I) {
+#pragma omp ordered
+            {
+                row_i.push_back(i / DIM);
+                col_i.push_back(i % DIM);
+            }
+        }
+        else if (b.agents[i].status == R) {
+#pragma omp ordered
+            {
+                row_r.push_back(i / DIM);
+                col_r.push_back(i % DIM);
+            }
+        }
+        else {
+            std::cout << "Error didn't find any match ";
+        }
 
-                #pragma omp section
-                {
-                    if (!col_v.empty()) {
-                        auto scat_v = scatter(col_v, row_v, size);
-                        scat_v->marker_color({ 0, 0, 0 });
-                        scat_v->marker_face_color({ 0.84, 0.733, 0.36 });
-                    }
-                }
-                #pragma omp section
-                {
-                    if (!col_i.empty()){
-                        auto scat_i = scatter(col_i, row_i, size);
-                        scat_i->marker_color({ 0, 0, 0 });
-                        scat_i->marker_face_color({ 1, 0, 0 });
-                    }
-                }
-                #pragma omp section
-                {
-                    if (!col_r.empty()) {
-                        auto scat_r = scatter(col_r, row_r, size);
-                        scat_r->marker_color({ 0, 0, 0 });
-                        scat_r->marker_face_color({ 0, 1, 0 });
-                    }
+    }
+    {
+        //scatterplots using matplot++ on converted array -> XY cordinates. 
+        using namespace matplot;
+
+        int size = 8; //TODO fix dynamical size depending on table DIM size. 
+
+        //dummy algoritm
+        // set size of graph window
+        //based on DIM calculate amount of circles given a radius 
+        // set size as calculated radius 
+
+        hold(on);
+#pragma omp parallel sections
+        {
+#pragma omp section
+            {
+                if (!col_s.empty()) {
+                    auto scat_s = scatter(col_s, row_s, size);
+                    scat_s->marker_color({ 0, 0, 0 });
+                    scat_s->marker_face_color({ 0.2, 0.4, 1 });
                 }
             }
-           show();
+#pragma omp section
+            {
+                if (!col_a.empty()) {
+                    auto scat_a = scatter(col_a, row_a, size);
+                    scat_a->marker_color({ 0, 0, 0 });
+                    scat_a->marker_face_color({ 1, 0.3, 0.3 });
+                }
+            }
+
+#pragma omp section
+            {
+                if (!col_v.empty()) {
+                    auto scat_v = scatter(col_v, row_v, size);
+                    scat_v->marker_color({ 0, 0, 0 });
+                    scat_v->marker_face_color({ 0.84, 0.733, 0.36 });
+                }
+            }
+#pragma omp section
+            {
+                if (!col_i.empty()) {
+                    auto scat_i = scatter(col_i, row_i, size);
+                    scat_i->marker_color({ 0, 0, 0 });
+                    scat_i->marker_face_color({ 1, 0, 0 });
+                }
+            }
+#pragma omp section
+            {
+                if (!col_r.empty()) {
+                    auto scat_r = scatter(col_r, row_r, size);
+                    scat_r->marker_color({ 0, 0, 0 });
+                    scat_r->marker_face_color({ 0, 1, 0 });
+                }
+            }
         }
+        show();
+    }
 }
 
 /**
@@ -140,11 +140,11 @@ void scatterplot(board b){
  * @param a string of the city name
  * @return a tuple with (lat,long) coordinates
  */
-std::tuple<double, double> get_lat_long(std::string city){
-    using namespace std; 
-    
+std::tuple<double, double> get_lat_long(std::string city) {
+    using namespace std;
+
     transform(city.begin(), city.end(), city.begin(), ::tolower);
-   
+
     ifstream data_file;
     data_file.open("..\\lib\\cities_data\\cities_swe.csv");
 
@@ -153,76 +153,129 @@ std::tuple<double, double> get_lat_long(std::string city){
     string lat_long;
 
 
-    while(data_file.good()){
+    while (data_file.good()) {
 
         getline(data_file, name, ';');
         getline(data_file, lat, ';');
         getline(data_file, lat_long, '\n');
-        
-        if (name.compare(city) == 0){
-            tuple res = make_tuple(stod(lat),stod(lat_long));
+
+        if (name.compare(city) == 0) {
+            tuple res = make_tuple(stod(lat), stod(lat_long));
             data_file.close();
             return res;
         }
     }
     data_file.close();
 
-return make_tuple(0,0);
+    return make_tuple(0, 0);
 }
+
+
+
+std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, std::vector<int>>  read_data_from_csv() {
+    std::vector<std::string> cities = {};
+    std::vector<std::tuple<double, double>> coordinates = {};
+    std::vector<int> populations = {};
+
+
+    
+    //transform(city.begin(), city.end(), city.begin(), ::tolower);
+    
+    std::ifstream data_file;
+    data_file.open("..\\lib\\cities_data\\cities_swe.csv");
+    //TODO: make it possible to supply custom path
+
+    std::string name;
+    std::string lat;
+    std::string lat_long;
+    std::string country;
+    std::string population;
+
+    //Skip first line on purpose to access data
+    std::getline(data_file, name);
+
+    while (data_file.good()) {
+
+        std::getline(data_file, name, ';');
+        std::getline(data_file, lat, ';');
+        std::getline(data_file, lat_long, ';');
+        std::getline(data_file, country, ';');
+        std::getline(data_file, population, '\n');
+
+        //std::cout << "Hello name : " << name << "  " << lat << " " << lat_long << " " << country << " " << std::stoi(population) << std::endl;
+        std::tuple tmp = std::make_tuple(stod(lat), stod(lat_long));
+
+        cities.push_back(name);
+        coordinates.push_back(tmp);
+        populations.push_back(std::stoi(population));
+    }
+    data_file.close();
+
+    std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, std::vector<int>> res = std::make_tuple(cities, coordinates, populations);
+    return res;
+}
+
 
 /**
  * Translates a agent status single character to a string
- * @param a agent_status 
+ * @param a agent_status
  * @return a string of the translated status
- */ 
-std::string translate_agent_status(agent_status status){
-    if (status == S){
+ */
+std::string translate_agent_status(agent_status status) {
+    if (status == S) {
         return "Susceptable";
-    }     if (status == A){
+    }     if (status == A) {
         return "Asymptotic";
-    }     if (status == V){
+    }     if (status == V) {
         return "Vaccinated";
-    }    if (status == I){
+    }    if (status == I) {
         return "Infected";
-    }    if (status == R){
+    }    if (status == R) {
         return "Recovered";
     }
 }
 
 
-void write_data_to_csv(std::string city[], agent_status status[], int size[], int time_unit[], int size_of_array){
-    
- 
+void write_data_to_csv(std::string city, agent_status status[], std::vector<unsigned int> size, std::tuple<double,double> lat_long, unsigned int time_unit) {
+
     // create our file
     std::ofstream file;
 
-    file.open("..\\lib\\built_covid_data\\coviddata.csv",std::ios::app);
-   			
+    file.open("..\\lib\\built_covid_data\\coviddata.csv", std::ios::app);
 
-     for (int i = 0; i < size_of_array; i++){
-        //std::cout << "kom hit " << i << std::endl;
-        std::tuple values = get_lat_long(city[i]);
+
+    for (int i = 0; i < STATES_COUNT; i++) {
+        //std::tuple values = read_city_from_csv(city); 
+        
+        //TODO: send tuple!
         std::string trans_status = translate_agent_status(status[i]);
-        file << city[i] << ";" << size[i]/SCALE << ";" << std::get<0>(values) << ";" << std::get<1>(values)  << ";" << time_unit[i] << ";" << trans_status << std::endl;
+        file << city << ";" << size[i] / SCALE << ";" << std::get<0>(lat_long) << ";" << std::get<1>(lat_long) << ";" << time_unit << ";" << trans_status << std::endl;
 
     }
-  
+
     //closing 
     file.close();
 }
 
 
-void visualization_of_board(board b){
-    if (PLOT){
+void visualization_of_board(board b, unsigned int t) {
+    if (PLOT) {
 
-    // Test data
-    std::string test[4] = {"stockholm", "Uppsala", "Malmoe", "Goeteborg"};
-    agent_status test2[4] = {A,S,S,A}; 
-    int test_pop[4] = {10000, 5000, 666, 9999}; 
-    int time_unit[4] = {1,2,3,4}; 
+        // Test data
+       /* std::string test[4] = {"stockholm", "Uppsala", "Malmoe", "Goeteborg"};
+        agent_status test2[4] = {A,S,S,A};
+        int test_pop[4] = {2010, 500, 545, 5789};
+        int time_unit[4] = {1,1,1,1}; */
 
-    write_data_to_csv(test, test2, test_pop, time_unit, 4);
-  
+        std::vector<unsigned int> population = {};
+        agent_status status_name[5] = { S, A, I, V, R };
+
+        for (int i = 0; i < STATES_COUNT; i++)
+        {
+            population.push_back(b.status_counts[i]);
+        }
+        write_data_to_csv(b.name, status_name, population, b.lat_long, t);
+
     }
 }
 

@@ -6,7 +6,7 @@
  * Used to call visualisation
  * @param a board b
  */
-void visualization_of_board(board b); 
+void visualization_of_board(board b, unsigned int t); 
 
 /**
  * The function translates our array to vectors of x,y cordinates and categories them based on agent
@@ -24,4 +24,11 @@ void scatterplot(board b);
  * @param a int for the size of the current arrays, all arrays needs to be the same size as this int
  * writes data to a CSV file which will be read by of geoplotter.py
  */
-void write_data_to_csv(std::string city[], agent_status status[], int size[], int time_unit[], int size_of_array);
+void write_data_to_csv(std::string city, agent_status status[], std::vector<unsigned int> size, std::tuple<double, double> lat_long, unsigned int time_unit);
+
+
+
+/**
+ * Reads pouplation data from csv file
+ */
+std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, std::vector<int>>  read_data_from_csv();
