@@ -48,6 +48,7 @@ struct board {
     std::vector<unsigned int> vaccination_weights;
     std::atomic_uint64_t vaccination_weight_sum;
     std::atomic_uint vaccinations_started;
+    std::tuple<double, double> lat_long;
 
     /**
      * Creates a new square board
@@ -55,9 +56,10 @@ struct board {
      * @param initial_infections The number of infected agents at creation
      * @param agent_types Specifications for what agents to populate the board with
      * @param name A name describing the board
+     * @param A tuple of latitude and longitude of the board
      * @param gen Generator to use when generating initial infections
      */
-    board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type>& agent_types, const std::string& name, std::mt19937_64& gen);
+    board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type>& agent_types, const std::string& name, std::tuple<double, double> lat_long, std::mt19937_64& gen);
 
     // std::atomic deletes these, so we need to redefine them.
     // Note that these are not atomic

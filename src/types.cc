@@ -1,14 +1,15 @@
 #include "types.hh"
 #include <random>
 
-board::board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type>& agent_types, const std::string& name, std::mt19937_64& gen)
+board::board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type>& agent_types, const std::string& name, std::tuple<double, double> lat_long, std::mt19937_64& gen)
     : dim(dim),
     agents(dim*dim),
     name(name),
     total_infections(initial_infections),
     vaccination_weights(dim*dim, 1),
     vaccination_weight_sum(dim*dim),
-    vaccinations_started(0) {
+    vaccinations_started(0),
+    lat_long(lat_long) {
 
     for (int s = 0; s < STATES_COUNT; s++) {
         status_counts[s] = 0;
@@ -71,6 +72,7 @@ board& board::operator=(board&& other) {
         this->vaccination_weights = std::move(other.vaccination_weights);
         this->vaccination_weight_sum = other.vaccination_weight_sum.load();
         this->vaccinations_started = other.vaccinations_started.load();
+        this->lat_long = other.lat_long;
         this->dim = other.dim;
         this->name = other.name;
         other.dim = 0;
@@ -89,6 +91,8 @@ board& board::operator=(const board& other) {
         this->vaccination_weights = other.vaccination_weights;
         this->vaccination_weight_sum = other.vaccination_weight_sum.load();
         this->vaccinations_started = other.vaccinations_started.load();
+        //this->lat_long = std::make_tuple(std::get<0>(other.lat_long), std::get<1>(other.lat_long));
+        this->lat_long = other.lat_long;
         this->dim = other.dim;
         this->name = other.name;
 

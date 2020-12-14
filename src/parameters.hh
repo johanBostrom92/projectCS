@@ -2,15 +2,15 @@
 #include <vector>
 
 
-#define INFECTION_RADIUS 2 //The radius in which an agent can infect another
-#define RECOVERY_RATE 5 //The time it takes for an agent to become Recovered
+#define INFECTION_RADIUS 50 //The radius in which an agent can infect another
+#define RECOVERY_RATE 14 //The time it takes for an agent to become Recovered
 #define INFECTION_PROBABILITY 25 //Probability for an agent to infect another
 #define MAKE_ASYM 50 //The probability that an infected individual is asymptomatic
 #define ASYM_INF_PROB 10 //The probability for asymptomatic carriers to infect others
 
 #define DIM 7 //The population of the community
 #define MAX_TIME 100 //The amount of timesteps to run the simulation
-#define STARTER_AGENTS 1 //The amount of agents which starts the simulation infected
+#define STARTER_AGENTS 10 //The amount of agents which starts the simulation infected
 #define QUARANTINE_START 5 //The timestep until agents starts quarantining
 #define ENABLE_QUARANTINE false //The flag to enable quarantine
 #define LAMBDA 2.5  // How fast the INFECTION_RADIUS decrease in case of a lock down
@@ -52,4 +52,4 @@ static const std::vector<agent_type> AGENT_TYPES = {
     agent_type{ INFECTION_RADIUS, 0, 1 }
 };
 
-static_assert(DIM >= INFECTION_RADIUS, "The infection radius cannot be greater than the board dimension");
+//static_assert(DIM >= INFECTION_RADIUS, "The infection radius cannot be greater than the board dimension");
