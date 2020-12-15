@@ -140,6 +140,7 @@ void scatterplot(board b) {
  * @param a string of the city name
  * @return a tuple with (lat,long) coordinates
  */
+/*
 std::tuple<double, double> get_lat_long(std::string city) {
     using namespace std;
 
@@ -169,7 +170,7 @@ std::tuple<double, double> get_lat_long(std::string city) {
 
     return make_tuple(0, 0);
 }
-
+*/
 
 
 std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, std::vector<int>>  read_data_from_csv() {
