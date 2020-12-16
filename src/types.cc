@@ -1,7 +1,7 @@
 #include "types.hh"
 #include <random>
 
-board::board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type>& agent_types, const std::string& name, std::tuple<double, double> lat_long, std::mt19937_64& gen)
+board::board(unsigned int dim, unsigned int initial_infections, const std::vector<agent_type>& agent_types, const std::string& name, std::tuple<double, double> lat_long, std::vector<double> weights, std::mt19937_64& gen)
     : dim(dim),
     agents(dim*dim),
     name(name),
@@ -9,7 +9,8 @@ board::board(unsigned int dim, unsigned int initial_infections, const std::vecto
     vaccination_weights(dim*dim, 1),
     vaccination_weight_sum(dim*dim),
     vaccinations_started(0),
-    lat_long(lat_long) {
+    lat_long(lat_long),
+    weights(weights){
 
     for (int s = 0; s < STATES_COUNT; s++) {
         status_counts[s] = 0;
@@ -72,6 +73,7 @@ board& board::operator=(board&& other) {
         this->lat_long = other.lat_long;
         this->dim = other.dim;
         this->name = other.name;
+        this->weights = other.weights;
         other.dim = 0;
 
         for (int s = 0; s < STATES_COUNT; s++) {
@@ -92,6 +94,7 @@ board& board::operator=(const board& other) {
         this->lat_long = other.lat_long;
         this->dim = other.dim;
         this->name = other.name;
+        this->weights = other.weights;
 
         for (int s = 0; s < STATES_COUNT; s++) {
             this->status_counts[s] = other.status_counts[s].load();
