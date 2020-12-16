@@ -347,7 +347,11 @@ int toDistance(std::tuple<double,double> loc1, std::tuple<double,double> loc2)
     return static_cast<int>(ans); //Returns int
 }
 
-
+/**
+* Calculates weights for a community based on size and distance to other communities. 
+* @param comm The vector containing all the communities. 
+* @param curr The community to calculate weights for. 
+*/
 std::vector<double> calculateWeight(std::vector<board>& comm,board& curr) {
     std::vector<double> weights = {};
     #pragma omp parallel for ordered
@@ -429,7 +433,11 @@ void vaccinate(board& b, unsigned int n_vaccinations) {
 }
 
 
-
+/**
+* Picks a random community to travel to based on weights.
+* @param items The list of weights from the given community to another.
+* @param gen The generator object that is used to randomize numbers. 
+*/
 int weightRand(std::vector<double> items, std::mt19937_64& gen) {
 
     double cumulative = 0;
@@ -449,6 +457,11 @@ int weightRand(std::vector<double> items, std::mt19937_64& gen) {
     std::cout << std::endl << "The system failed to find a weight in the double version of weightRand" << std::endl;
     exit(1);
 }
+/**
+* Picks a random community based on population size.
+* @param items The list of community sizes.
+* @param gen The generator object that is used to randomize numbers.
+*/
 int weightRand(std::vector<int> items, std::mt19937_64& gen) {
 
     double cumulative = 0;
@@ -482,7 +495,12 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
 }
 
 
-
+/**
+* Move functionality, allowing agents to be moved between communities at random based of weights and population sizes.
+* @param curr_board The list of current communities.
+* @param agents The amount of agents to be swapped.
+* @param weight The list of community population sizes. 
+*/
 void moveAgents(std::vector<board>& curr_board, int agents, std::vector<int> weight) {
     std::mt19937_64 gen = generators[0];
 
