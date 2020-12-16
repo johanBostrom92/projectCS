@@ -5,7 +5,7 @@
 #include <omp.h>
 #include <fstream>
 #include <iostream>
-
+#include <stdio.h>
 
 void scatterplot(board b) {
     //Transform array index to X,Y cordinates as col,row
@@ -204,6 +204,9 @@ std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, st
         std::getline(data_file, population, '\n');
 
         //std::cout << "Hello name : " << name << "  " << lat << " " << lat_long << " " << country << " " << std::stoi(population) << std::endl;
+        if (name.empty() || lat.empty() || lat_long.empty()|| country.empty() || population.empty()) {
+            continue;
+        }
         std::tuple tmp = std::make_tuple(stod(lat), stod(lat_long));
 
         cities.push_back(name);
