@@ -33,6 +33,7 @@ struct agent {
     int recovery_rate = RECOVERY_RATE;
     bool vaccination_progress = false;
     int vaccination_rate = VACCINATION_RATE;
+    int DAY_INFECTED = 0;
 };
 
 /**

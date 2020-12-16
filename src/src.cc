@@ -74,7 +74,7 @@ void vaccinate(agent& agent) {
  * @param gen The current random number generator
  * @param b The board b in which both ag ents reside
  */
-void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b) {
+void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b, unsigned int t) {
     std::uniform_int_distribution<int> dis2(0, 99);
     int infect_prob;
     if (self.status == I) {
@@ -94,6 +94,8 @@ void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b) {
         }
         b.status_counts[to_infect.status]++;
         b.total_infections++;
+        to_infect.DAY_INFECTED = t;
+        to_infect.recovery_rate = RECOVERY_RATE;
     }
 }
 
@@ -119,7 +121,7 @@ void step(board& previous, board& current, int t) {
             std::uniform_int_distribution<int> vacc_dis(0, 99);
             if (self.vaccination_progress) { //Check first if agent is vaccinated
                 currentSelf.vaccination_rate--;
-                if (currentSelf.vaccination_rate == 0) {
+                if (currentSelf.vaccination_rate == 0 && !infected[y * current.dim + x].test_and_set() && (currentSelf.status != I && currentSelf.status != A)) {
                     int vacc_check = vacc_dis(gen);
                     if (vacc_check < VACCINATION_EFFICACY) {
                         //Congrats! You're vaccinated!
@@ -131,6 +133,7 @@ void step(board& previous, board& current, int t) {
                     }
                 }
             }
+             
             if (self.status == I || self.status == A) { //The infected checks for susceptible neighbors within the box.
                 currentSelf.recovery_rate--;
                 if (currentSelf.recovery_rate == 0) {
@@ -178,11 +181,19 @@ void step(board& previous, board& current, int t) {
                     int x_other = std::get<0>(checked.at(rand_S));
                     agent& other = previous.agents[y_other * current.dim + x_other];
                     agent& otherCurr = current.agents[y_other * current.dim + x_other];
-
-                    if (other.status == S && !infected[y_other * current.dim + x_other].test_and_set()) { //If neighbour is susceptible
-                        infect(self, otherCurr, gen, current);
+                    std::uniform_int_distribution<int> dis4(RECOVERED_MIN_THRESHOLD, RECOVERED_MAX_THRESHOLD);
+                    int rand4 = dis4(gen);
+                    if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED + RECOVERY_RATE) >= rand4) {
+                        //Time to get reinfected!
+                        current.status_counts[R]--;
+                        otherCurr.status = S;
+                        current.status_counts[S]++;
+                        infect(self, otherCurr, gen, current, t);
                     }
 
+                    if (other.status == S && !infected[y_other * current.dim + x_other].test_and_set()) { //If neighbour is susceptible
+                        infect(self, otherCurr, gen, current, t);
+                    }
 
                     else {
 
@@ -211,8 +222,18 @@ void step(board& previous, board& current, int t) {
                     agent& other = previous.agents[y_other * current.dim + x_other];
                     agent& otherCurr = current.agents[y_other * current.dim + x_other];
                     if (other.status == S && !infected[y_other * current.dim + x_other].test_and_set()) { //If neighbour is susceptible
-                        infect(self, otherCurr, gen, current);
+                        infect(self, otherCurr, gen, current, t);
                     }
+                    std::uniform_int_distribution<int> dis4(RECOVERED_MIN_THRESHOLD, RECOVERED_MAX_THRESHOLD);
+                    int rand4 = dis4(gen);
+                    if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED + RECOVERY_RATE) >= rand4) {
+                        //Time to get reinfected!
+                        current.status_counts[R]--;
+                        otherCurr.status = S;
+                        current.status_counts[S]++;
+                        infect(self, otherCurr, gen, current, t);
+                    }
+
 
 
 
@@ -453,10 +474,10 @@ int main() {
         infection_history[0] += curr_board[i].total_infections;
     }
 
-    for (int i = 0; i < curr_board.size(); i++)
-    {
-        std::cout << "Hello name : " << std::get<0>(curr_board[i].lat_long) << " " << std::get<1>(curr_board[i].lat_long) << std::endl;
-    }
+    //for (int i = 0; i < curr_board.size(); i++)
+    //{
+    //    std::cout << "Hello name : " << std::get<0>(curr_board[i].lat_long) << " " << std::get<1>(curr_board[i].lat_long) << std::endl;
+    //}
     //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
     if (remove("..\\lib\\built_covid_data\\coviddata.csv") != 0) {
@@ -477,9 +498,6 @@ int main() {
 
 
 
-
-
-
     { //Loop tracking
         if (t % 10 == 0) {
             for (int i = 0; i < curr_board.size(); i++)
@@ -488,10 +506,8 @@ int main() {
             }
 
         }
-        //The magic number is how many agents should swap each timestep.
-        //TODO: Create a variable for the NR of swapping agents
         //TODO: add inter-weights and re-enable swapping!
-        //moveAgents(curr_board, 4, weight, inter_weight);
+        //moveAgents(curr_board, SWAPPABLE_AGENTS, weight, inter_weight);
 
         for (int i = 0; i < comm_names.size(); i++)
         {
