@@ -7,11 +7,11 @@
 #define INFECTION_PROBABILITY 25 //Probability for an agent to infect another
 #define MAKE_ASYM 50 //The probability that an infected individual is asymptomatic
 #define ASYM_INF_PROB 10 //The probability for asymptomatic carriers to infect others
-#define RECOVERED_MIN_THRESHOLD 60 //Get randomzied value from 60 - 180 Can bugg out after 300  timesteps
+#define RECOVERED_MIN_THRESHOLD 20 //Get randomzied value from 60 - 180 Can bugg out after 300  timesteps
 #define RECOVERED_MAX_THRESHOLD 365 //Get randomzied value from 60 - 180
-#define SWAPPABLE_AGENTS 10
+//#define SWAPPABLE_AGENTS 10
 
-#define DIM 7 //The population of the community
+//#define DIM 7 //The population of the community
 #define MAX_TIME 365 //The amount of timesteps to run the simulation
 #define STARTER_AGENTS 10 //The amount of agents which starts the simulation infected
 #define QUARANTINE_START 5 //The timestep until agents starts quarantining
@@ -20,7 +20,7 @@
 #define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 #define PLOT true   // if we want to do plots (increases execution time drastically)
 #define SCALE 1 //scale for geobubble plot. 
-#define SWAP_AMOUNT 5 // sets the amount of agents to swap each time unit. 
+#define SWAP_AMOUNT 1500 // sets the amount of agents to swap each time unit. 
 
 #define VACCINATION_RATE 28 //The time it takes for the vaccine to work
 #define VACCINATION_EFFICACY 75 //The efficiency of the vaccine
@@ -33,7 +33,7 @@ enum class vaccination_strategy {
     LOW_DENSITY    // Agents in areas with a high density of infected agents have a *lower* chance of being vaccinated
 };
 
-constexpr vaccination_strategy VACC_STRAT = vaccination_strategy::LOW_DENSITY;
+constexpr vaccination_strategy VACC_STRAT = vaccination_strategy::HIGH_DENSITY;
 
 
 /**
