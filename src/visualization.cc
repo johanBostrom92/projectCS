@@ -183,9 +183,10 @@ std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, st
     //transform(city.begin(), city.end(), city.begin(), ::tolower);
     
     std::ifstream data_file;
-    data_file.open("..\\lib\\cities_data\\cities_swe.csv");
+    std::string path = "..\\lib\\cities_data\\cities_swe.csv";
+    data_file.open(path);
     //TODO: make it possible to supply custom path
-
+    std::cout << "Successfully read file " << path << std::endl;
     std::string name;
     std::string lat;
     std::string lat_long;

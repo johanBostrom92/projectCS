@@ -7,9 +7,12 @@
 #define INFECTION_PROBABILITY 25 //Probability for an agent to infect another
 #define MAKE_ASYM 50 //The probability that an infected individual is asymptomatic
 #define ASYM_INF_PROB 10 //The probability for asymptomatic carriers to infect others
+#define RECOVERED_MIN_THRESHOLD 60 //Get randomzied value from 60 - 180 Can bugg out after 300  timesteps
+#define RECOVERED_MAX_THRESHOLD 365 //Get randomzied value from 60 - 180
+#define SWAPPABLE_AGENTS 10
 
 #define DIM 7 //The population of the community
-#define MAX_TIME 100 //The amount of timesteps to run the simulation
+#define MAX_TIME 365 //The amount of timesteps to run the simulation
 #define STARTER_AGENTS 10 //The amount of agents which starts the simulation infected
 #define QUARANTINE_START 5 //The timestep until agents starts quarantining
 #define ENABLE_QUARANTINE false //The flag to enable quarantine
@@ -21,8 +24,8 @@
 
 #define VACCINATION_RATE 28 //The time it takes for the vaccine to work
 #define VACCINATION_EFFICACY 75 //The efficiency of the vaccine
-#define VACCINATION_START 10     // The time at which to begin vaccinating people
-#define VACCINATIONS_PER_DAY 5000  // The number of people we can vaccinate per day
+#define VACCINATION_START 180    // The time at which to begin vaccinating people
+#define VACCINATIONS_PER_DAY 1000  // The number of people we can vaccinate per day
 
 enum class vaccination_strategy {
     UNIFORM,       // Every agents has equal change of being vaccinated
