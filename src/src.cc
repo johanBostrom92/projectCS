@@ -58,7 +58,7 @@ void swap(board& fromBoard, board& toBoard, int fromIndex, int toIndex) {
     agent swap_agent = toBoard.agents[toIndex];
     toBoard.agents[toIndex] = fromBoard.agents[fromIndex];
     fromBoard.agents[fromIndex] = swap_agent;
-    std::cout << std::endl << fromBoard.name << ":" << fromIndex << " <==> " << toBoard.name << ":" << toIndex << std::endl;
+    //std::cout << std::endl << fromBoard.name << ":" << fromIndex << " <==> " << toBoard.name << ":" << toIndex << std::endl;
 }
 
 
@@ -466,9 +466,10 @@ int weightRand(std::vector<double> items, std::mt19937_64& gen) {
     {
         cumulative += items[i];
     }
-    std::uniform_int_distribution<int> move_dist(0, cumulative);
+    
+    std::uniform_real_distribution move_dist(0.0, cumulative);
     //std::uniform_real_distribution move_dist(0.0, cumulative);
-    int rand = move_dist(gen);
+    double rand = move_dist(gen);
     for (int i = 0; i < items.size(); i++) {
         cumulative -= items[i];
         if (rand >= cumulative) {
@@ -485,14 +486,14 @@ int weightRand(std::vector<double> items, std::mt19937_64& gen) {
 */
 int weightRand(std::vector<int> items, std::mt19937_64& gen) {
 
-    double cumulative = 0;
+    int cumulative = 0;
     for (int i = 0; i < items.size(); i++)
     {
         cumulative += items[i];
     }
 
-    std::uniform_real_distribution move_dist(0.0, cumulative);
-    double rand = move_dist(gen);
+    std::uniform_int_distribution<int> move_dist(0, cumulative);
+    int rand = move_dist(gen);
     for (int i = 0; i < items.size(); i++) {
         cumulative -= items[i];
         if (rand >= cumulative) {

@@ -7,6 +7,8 @@
 #include <iostream>
 #include <stdio.h>
 
+
+/*
 void scatterplot(board b) {
     //Transform array index to X,Y cordinates as col,row
 
@@ -131,7 +133,7 @@ void scatterplot(board b) {
         show();
     }
 }
-
+*/
 /**
  * Returns the lat long of a location
  * the location needs to exist in the cities_swe.csv file
