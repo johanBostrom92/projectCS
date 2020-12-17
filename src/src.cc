@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include "types.hh"
 #include "parameters.hh"
 #include <vector>
@@ -15,7 +16,9 @@
 #include <algorithm>
 #include <visualization.hh>
 #include <cassert>
-#include <math.h>
+#include <iomanip> 
+
+
 
 
 // Holds one random number generator for each thread
@@ -318,6 +321,88 @@ void update_vaccination_weights(board& b) {
 }
 
 /**
+* Converts the latitude and longitude to Radians for Distance Calculation.
+* @param degree Takes the Coordinate to translate. 
+*/
+
+long double toRadians(const long double degree)
+{
+    //M_PI is cmath predefined value for pi.
+    long double one_deg = (M_PI) / 180;
+    return (one_deg * degree);
+}
+/**
+* Calculates the distance between two sets of coordinates.
+* @param loc1 Takes a tuple consisting of latitude and longitude values
+* @param loc1 Takes a tuple consisting of latitude and longitude values
+*/
+int toDistance(std::tuple<double,double> loc1, std::tuple<double,double> loc2)
+{
+    /*double lat1 = 59.85882;
+    double long1 = 17.63889;
+    double lat2 = 59.4439;
+    double long2 = 18.06872;
+    */
+    double lat1 = std::get<0>(loc1);
+    double long1 = std::get<1>(loc1);
+    double lat2 = std::get<0>(loc2);
+    double long2 = std::get<1>(loc2);
+
+    lat1 = toRadians(lat1);
+    long1 = toRadians(long1);
+    lat2 = toRadians(lat2);
+    long2 = toRadians(long2);
+
+    // Haversine Formula for calculating distance
+    double difflong = long2 - long1;
+    double difflat = lat2 - lat1;
+
+    double ans = pow( sin(difflat / 2), 2) + cos(lat1) * cos(lat2) * pow( sin(difflong / 2), 2);
+
+    ans = 2 * asin(sqrt(ans));
+
+    // Sets radius of the earth, 6371 for KM and 3956 for miles  
+    double R = 6371;
+    ans = ans * R; //Calculate final distance.
+
+    return static_cast<int>(ans); //Returns int
+}
+
+/**
+* Calculates weights for a community based on size and distance to other communities. 
+* @param comm The vector containing all the communities. 
+* @param curr The community to calculate weights for. 
+*/
+std::vector<double> calculateWeight(std::vector<board>& comm,board& curr) {
+    std::vector<double> weights = {};
+    #pragma omp parallel for ordered
+    for (int i = 0; i < comm.size(); i++) {
+        double population = comm[i].dim* comm[i].dim;
+        std::tuple<double, double> current_latlong = curr.lat_long;
+        std::tuple<double, double> target_latlong = comm[i].lat_long;
+        int distance = toDistance(current_latlong, target_latlong);
+        if (distance == 0) {
+            #pragma omp ordered
+            weights.push_back(1);
+        }
+        else {
+            /*std::cout << std::setprecision(15) << std::fixed; //To check values with higher precision
+            std::cout << std::endl << "pop " << population << " distance " << distance << std::endl;
+            std::cout << std::endl << "The weight is " << population / distance << std::endl; */
+            #pragma omp ordered
+            weights.push_back(population / distance);
+        }
+    }
+    return weights;
+}
+
+
+
+
+
+
+
+/**
  * Vaccinates a number of agents in the board, based on the board's vaccination weights
  * @param board The board to perform vaccinations in
  * @param n_vaccinations The number of vaccinations to perform
@@ -368,7 +453,37 @@ void vaccinate(board& b, unsigned int n_vaccinations) {
     }
 }
 
+
+/**
+* Picks a random community to travel to based on weights.
+* @param items The list of weights from the given community to another.
+* @param gen The generator object that is used to randomize numbers. 
+*/
 int weightRand(std::vector<double> items, std::mt19937_64& gen) {
+
+    double cumulative = 0;
+    for (int i = 0; i < items.size(); i++)
+    {
+        cumulative += items[i];
+    }
+    std::uniform_int_distribution<int> move_dist(0, cumulative);
+    //std::uniform_real_distribution move_dist(0.0, cumulative);
+    int rand = move_dist(gen);
+    for (int i = 0; i < items.size(); i++) {
+        cumulative -= items[i];
+        if (rand >= cumulative) {
+            return i;
+        }
+    }
+    std::cout << std::endl << "The system failed to find a weight in the double version of weightRand" << std::endl;
+    exit(1);
+}
+/**
+* Picks a random community based on population size.
+* @param items The list of community sizes.
+* @param gen The generator object that is used to randomize numbers.
+*/
+int weightRand(std::vector<int> items, std::mt19937_64& gen) {
 
     double cumulative = 0;
     for (int i = 0; i < items.size(); i++)
@@ -384,7 +499,8 @@ int weightRand(std::vector<double> items, std::mt19937_64& gen) {
             return i;
         }
     }
-
+    std::cout << std::endl << "The system failed to find a weight in the int version of weightRand" << std::endl;
+    exit(1);
 }
 
 
@@ -400,7 +516,13 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
 }
 
 
-void moveAgents(std::vector<board>& curr_board, int agents, const std::vector<double>& weight, const std::vector<std::vector<double>>& inter_weight) {
+/**
+* Move functionality, allowing agents to be moved between communities at random based of weights and population sizes.
+* @param curr_board The list of current communities.
+* @param agents The amount of agents to be swapped.
+* @param weight The list of community population sizes. 
+*/
+void moveAgents(std::vector<board>& curr_board, int agents, std::vector<int> weight) {
     std::mt19937_64 gen = generators[0];
 
     for (int i = 0; i < agents; i++) {
@@ -411,7 +533,7 @@ void moveAgents(std::vector<board>& curr_board, int agents, const std::vector<do
         std::uniform_int_distribution<int> fromAgent_dis(0, (fromDim * fromDim - 1));
         int agentfromBoardIdx = fromAgent_dis(gen);
         agent agentFromBoard = fromBoard.agents[agentfromBoardIdx];
-        int toBoardIdx = weightRand(inter_weight[fromBoardIdx], gen);
+        int toBoardIdx = weightRand(curr_board[fromBoardIdx].weights, gen);
         board& toBoard = curr_board[toBoardIdx];
         int targetDim = toBoard.dim;
 
@@ -424,6 +546,7 @@ void moveAgents(std::vector<board>& curr_board, int agents, const std::vector<do
 }
 
 int main() {
+    
     // Create random generators
     unsigned int n_threads;
     // seems like we have to run omp_get_num_threads in a parallel region to get the actual number of threads
@@ -449,7 +572,7 @@ int main() {
 
     std::vector<board> prev_board = {};
     std::vector<board> curr_board = {};
-
+    std::vector<int> populations = {};
     // Stores overall counts each step. This data is plotted after the simulation.
     std::vector<std::vector<unsigned int>> status_history(STATES_COUNT, std::vector<unsigned int>(MAX_TIME + 1, 0));
     std::vector<unsigned int> infection_history(MAX_TIME + 1, 0);
@@ -462,23 +585,31 @@ int main() {
         int population = std::get<2>(csv_data)[i];
         int calc_dim = ceil(sqrt(population));
         dimensions.push_back(calc_dim);
-        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, comm_names[i], coordinates[i], generators[0]);
-
+        std::vector<double> weights = {};
+        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, comm_names[i], coordinates[i], weights, generators[0]);
         prev_board.push_back(new_board);
         board curr = new_board;
         curr_board.push_back(curr);
-
+        populations.push_back(calc_dim * calc_dim);
         for (int s = 0; s < STATES_COUNT; s++) {
             status_history[s][0] += curr_board[i].status_counts[s];
         }
         infection_history[0] += curr_board[i].total_infections;
     }
+    for (int i = 0; i < curr_board.size(); i++)
+    {
+        std::vector<double> weights = calculateWeight(curr_board, curr_board[i]);
+        curr_board[i].weights = weights;
+        prev_board[i].weights = weights;
+    }
+    
 
-    //for (int i = 0; i < curr_board.size(); i++)
-    //{
-    //    std::cout << "Hello name : " << std::get<0>(curr_board[i].lat_long) << " " << std::get<1>(curr_board[i].lat_long) << std::endl;
-    //}
-    //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    /*for (int i = 0; i < curr_board.size(); i++)
+    {
+        std::cout << "Hello name : " << std::get<0>(curr_board[i].lat_long) << " " << std::get<1>(curr_board[i].lat_long) << std::endl;
+    }*/
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
 
     if (remove("..\\lib\\built_covid_data\\coviddata.csv") != 0) {
         perror("Error deleting file");
@@ -495,9 +626,6 @@ int main() {
     }
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
-
-
-
     { //Loop tracking
         if (t % 10 == 0) {
             for (int i = 0; i < curr_board.size(); i++)
@@ -506,8 +634,10 @@ int main() {
             }
 
         }
-        //TODO: add inter-weights and re-enable swapping!
-        //moveAgents(curr_board, SWAPPABLE_AGENTS, weight, inter_weight);
+        //moveAgents(curr_board, SWAP_AMOUNT, populations);
+        //The magic number is how many agents should swap each timestep.
+        moveAgents(curr_board, SWAP_AMOUNT, populations);
+        prev_board = curr_board;
 
         for (int i = 0; i < comm_names.size(); i++)
         {
@@ -555,9 +685,9 @@ int main() {
         title(ax2, "Cumulative infections (incl. asymptomatic)");
         xlabel(ax2, "t (days)");
         ylabel(ax2, "Number of infections");
-        /* std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-        std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;*/
+        std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;
     }
     std::cout << "Press Enter to exit..." << std::endl;
     std::cin.get();
