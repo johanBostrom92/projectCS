@@ -1,5 +1,6 @@
 Visualization:
 Successfully integrated the code so we can read city data from a .CSV into our model. Then simulate the data and write to another .csv file which is then is plotted using python.
+Further visual improvement and integration of automatically running python script from c++. 
 
 Added so the system automatically  calculate weights depeding on distance to other cities and on population sizes.
 Fixed Swap functionality that was previously broken.
