@@ -39,6 +39,10 @@ set(PROJECT_LIBRARIES)
 # Add executable for project
 add_executable(${PROJECT_NAME} ${PROJECT_SRCS} ${PROJECT_HDRS})
 
+
+
+#set(${PROJECT_LIBRARIES} ${PROJECT_LIBRARIES} ${PYTHON_LIBRARIES} )
+
 # Link executable to libraries
 target_link_libraries(${PROJECT_NAME} ${PROJECT_LIBRARIES})
 
@@ -47,8 +51,15 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
+
+
 # Build and use matplot++
 add_subdirectory(lib/matplotplusplus-1.0.1)
 target_link_libraries(${PROJECT_NAME} PUBLIC matplot)
+
+# Link Python 
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${PYTHON_LIBRARIES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/dist")

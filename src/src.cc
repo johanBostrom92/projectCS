@@ -16,6 +16,10 @@
 #include <visualization.hh>
 #include <cassert>
 #include <math.h>
+#include <stdio.h>
+#include <conio.h>
+#include <Python.h>
+
 
 
 // Holds one random number generator for each thread
@@ -543,6 +547,18 @@ int main() {
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
         std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;*/
     }
+    //system("..\\src\\call_python.sh");
+    Py_Initialize();
+
+    //Run a simple file
+    FILE* PScriptFile = fopen("..\\src\\geoplotter.py", "r");
+    if (PScriptFile) {
+        PyRun_SimpleFile(PScriptFile, "..\\src\\geoplotter.py");
+        fclose(PScriptFile);
+    }
+    //Close the python instance
+    Py_Finalize();
+
     std::cout << "Press Enter to exit..." << std::endl;
     std::cin.get();
     return 0;
