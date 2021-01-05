@@ -146,7 +146,7 @@ void step(board& previous, board& current, int t) {
                     continue;
                 }
                 int rad = self.infection_radius;
-                if (t >= QUARANTINE_START && ENABLE_QUARANTINE) {
+                if (ENABLE_QUARANTINE && t >= QUARANTINE_START && t <= QUARANTINE_END) {
                     rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE_START))) / LAMBDA));
 
                 }
@@ -612,14 +612,14 @@ int main() {
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
 
-    if (remove("..\\lib\\built_covid_data\\coviddata.csv") != 0) {
+    if (remove("..//lib//built_covid_data//coviddata.csv") != 0) {
         perror("Error deleting file");
     }
     else {
-        puts("File successfully deleted");
+        puts("Successfully deleted the old data file");
         std::ofstream file;
 
-        file.open("..\\lib\\built_covid_data\\coviddata.csv", std::ios::app);
+        file.open("..//lib//built_covid_data//coviddata.csv", std::ios::app);
 
         // Initialize first row
         file << "city" << ";" << "popu" << ";" << "lat" << ";" << "long" << ";" << "month" << ";" << "agent" << std::endl;

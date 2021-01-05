@@ -185,9 +185,9 @@ std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, st
     //transform(city.begin(), city.end(), city.begin(), ::tolower);
     
     std::ifstream data_file;
-    std::string path = "..\\lib\\cities_data\\cities_swe.csv";
+    std::string file_name = CITIES_INPUT;
+    std::string path = "..//lib//cities_data//" + file_name;
     data_file.open(path);
-    //TODO: make it possible to supply custom path
     std::cout << "Successfully read file " << path << std::endl;
     std::string name;
     std::string lat;
@@ -230,9 +230,9 @@ std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, st
  */
 std::string translate_agent_status(agent_status status) {
     if (status == S) {
-        return "Susceptable";
+        return "Susceptible";
     }     if (status == A) {
-        return "Asymptotic";
+        return "Asymptomatic";
     }     if (status == V) {
         return "Vaccinated";
     }    if (status == I) {
@@ -248,7 +248,7 @@ void write_data_to_csv(std::string city, agent_status status[], std::vector<unsi
     // create our file
     std::ofstream file;
 
-    file.open("..\\lib\\built_covid_data\\coviddata.csv", std::ios::app);
+    file.open("..//lib//built_covid_data//coviddata.csv", std::ios::app);
 
 
     for (int i = 0; i < STATES_COUNT; i++) {
