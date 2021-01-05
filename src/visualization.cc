@@ -226,7 +226,7 @@ std::string translate_agent_status(agent_status status) {
     if (status == S) {
         return "Susceptable";
     }     if (status == A) {
-        return "Asymptotic";
+        return "Asymptomatic";
     }     if (status == V) {
         return "Vaccinated";
     }    if (status == I) {
