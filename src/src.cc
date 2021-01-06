@@ -16,7 +16,7 @@
 #include <algorithm>
 #include <visualization.hh>
 #include <cassert>
-#include <iomanip> 
+#include <iomanip>
 
 
 
@@ -66,8 +66,9 @@ void swap(board& fromBoard, board& toBoard, int fromIndex, int toIndex) {
  * Start the vaccination process of an agent
  * @param agent The agent to vaccinate
  */
-void vaccinate(agent& agent) {
+void vaccinate(agent& agent, unsigned int t) {
     agent.vaccination_progress = true;
+    agent.day_vaccinated = t;
 }
 
 /**
@@ -77,7 +78,7 @@ void vaccinate(agent& agent) {
  * @param gen The current random number generator
  * @param b The board b in which both ag ents reside
  */
-void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b, unsigned int t) {
+agent infect(const agent& self, agent to_infect, std::mt19937_64& gen, int* status_changes, unsigned int t) {
     std::uniform_int_distribution<int> dis2(0, 99);
     int infect_prob;
     if (self.status == I) {
@@ -95,11 +96,11 @@ void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b, unsig
         else {
             to_infect.status = I;
         }
-        b.status_counts[to_infect.status]++;
-        b.total_infections++;
+        status_changes[to_infect.status]++;
+        status_changes[STATES_COUNT]++;
         to_infect.DAY_INFECTED = t;
-        to_infect.recovery_rate = RECOVERY_RATE;
     }
+    return to_infect;
 }
 
 /**
@@ -109,47 +110,59 @@ void infect(agent& self, agent& to_infect, std::mt19937_64& gen, board& b, unsig
  * @param t The current timestep
  */
 void step(board& previous, board& current, int t) {
+    double exp_value = exp(((-(t - static_cast<double>(QUARANTINE_START)))/ LAMBDA));
     std::vector<std::atomic_flag> infected(previous.agents.size());
+
+
+    std::vector<std::vector<std::pair<unsigned int, agent>>> total_changes;
+    int total_status_changes[STATES_COUNT+1];
+    std::memset(total_status_changes, 0, sizeof(*total_status_changes * (STATES_COUNT + 1)));
+
+
+#pragma omp parallel
+    {
+    std::vector<std::pair<unsigned int, agent>> changes;
+    int status_changes[STATES_COUNT+1];
+    std::memset(total_status_changes, 0, sizeof(*total_status_changes * STATES_COUNT));
 #ifdef _WIN32
-#pragma omp parallel for
+#pragma omp for
 #else
-#pragma omp parallel for collapse(2)
+#pragma omp for collapse(2)
 #endif
     for (int y = 0; y < current.dim; y++) {
         for (int x = 0; x < current.dim; x++) {
             std::mt19937_64& gen = generators[omp_get_thread_num()];
 
             agent& self = previous.agents[y * current.dim + x];
-            agent& currentSelf = current.agents[y * current.dim + x];
+            agent currentSelf = current.agents[y * current.dim + x];
             std::uniform_int_distribution<int> vacc_dis(0, 99);
             if (self.vaccination_progress) { //Check first if agent is vaccinated
-                currentSelf.vaccination_rate--;
-                if (currentSelf.vaccination_rate == 0 && !infected[y * current.dim + x].test_and_set() && (currentSelf.status != I && currentSelf.status != A)) {
+                if (VACCINATION_RATE + currentSelf.day_vaccinated <= t && !infected[y * current.dim + x].test_and_set() && (currentSelf.status != I && currentSelf.status != A)) {
                     int vacc_check = vacc_dis(gen);
                     if (vacc_check < VACCINATION_EFFICACY) {
                         //Congrats! You're vaccinated!
                         // TODO: handle A and I specially? i.e., does the vaccinate 'beat' the infection if it's already there?
-                        current.status_counts[currentSelf.status]--;
+                        status_changes[currentSelf.status]--;
                         currentSelf.status = V;
-                        current.status_counts[V]++;
+                        changes.push_back( { y * current.dim + x, currentSelf });
+                        status_changes[V]++;
                         continue;
                     }
                 }
             }
-             
+
             if (self.status == I || self.status == A) { //The infected checks for susceptible neighbors within the box.
-                currentSelf.recovery_rate--;
-                if (currentSelf.recovery_rate == 0) {
-                    current.status_counts[self.status]--;
+                if (currentSelf.DAY_INFECTED + currentSelf.recovery_rate <= t) {
+                    status_changes[self.status]--;
                     currentSelf.status = R;
-                    current.status_counts[R]++;
+                    changes.push_back( { y * current.dim + x, currentSelf } );
+                    status_changes[currentSelf.status]++;
                     continue;
-                }
+				}
                 int rad = self.infection_radius;
                 if (t >= QUARANTINE_START && ENABLE_QUARANTINE) {
-                    rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE_START))) / LAMBDA));
-
-                }
+					rad = static_cast<double>(self.infection_radius) * exp_value;
+				}
                 if (rad <= 0) {
                     continue;
                 }
@@ -188,14 +201,17 @@ void step(board& previous, board& current, int t) {
                     int rand4 = dis4(gen);
                     if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED + RECOVERY_RATE) >= rand4) {
                         //Time to get reinfected!
-                        current.status_counts[R]--;
-                        otherCurr.status = S;
-                        current.status_counts[S]++;
-                        infect(self, otherCurr, gen, current, t);
+                        agent changed = infect(self, otherCurr, gen, status_changes, t);
+                        status_changes[R]--;
+                        if (changed.status == R) {
+                            changed.status = S;
+                            status_changes[S]++;
+                        }
+                        changes.push_back( { y_other * current.dim + x_other, changed } );
                     }
 
                     if (other.status == S && !infected[y_other * current.dim + x_other].test_and_set()) { //If neighbour is susceptible
-                        infect(self, otherCurr, gen, current, t);
+                        changes.push_back( { y_other * current.dim + x_other, infect(self, otherCurr, gen, status_changes, t) } );
                     }
 
                     else {
@@ -225,16 +241,19 @@ void step(board& previous, board& current, int t) {
                     agent& other = previous.agents[y_other * current.dim + x_other];
                     agent& otherCurr = current.agents[y_other * current.dim + x_other];
                     if (other.status == S && !infected[y_other * current.dim + x_other].test_and_set()) { //If neighbour is susceptible
-                        infect(self, otherCurr, gen, current, t);
+                        changes.push_back( { y_other * current.dim + x_other, infect(self, otherCurr, gen, status_changes, t) } );
                     }
                     std::uniform_int_distribution<int> dis4(RECOVERED_MIN_THRESHOLD, RECOVERED_MAX_THRESHOLD);
                     int rand4 = dis4(gen);
                     if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED + RECOVERY_RATE) >= rand4) {
                         //Time to get reinfected!
-                        current.status_counts[R]--;
-                        otherCurr.status = S;
-                        current.status_counts[S]++;
-                        infect(self, otherCurr, gen, current, t);
+                        agent changed = infect(self, otherCurr, gen, status_changes, t);
+                        status_changes[R]--;
+                        if (changed.status == R) {
+                            changed.status = S;
+                            status_changes[S]++;
+                        }
+                        changes.push_back( { y_other * current.dim + x_other, changed } );
                     }
 
 
@@ -245,7 +264,25 @@ void step(board& previous, board& current, int t) {
             }
         }
     }
-    current.status_counts[S] = current.dim * current.dim - current.status_counts[R] - current.status_counts[I] - current.status_counts[A] - current.status_counts[V];
+    #pragma omp critical
+    {
+        total_changes.push_back(std::move(changes));
+        for (int s = 0; s < STATES_COUNT; s++) {
+            total_status_changes[s] += status_changes[s];
+        }
+    }
+    }
+    // Apply changes
+    for (const auto& change_list : total_changes) {
+        for (const auto& change : change_list) {
+            current.agents[change.first] = change.second;
+        }
+    }
+    for (int i = 0; i < STATES_COUNT; i++) {
+		current.status_counts[i] += total_status_changes[i];
+	}
+	current.total_infections += total_status_changes[STATES_COUNT];
+	current.status_counts[S] = current.dim * current.dim - current.status_counts[R] - current.status_counts[I] - current.status_counts[A] - current.status_counts[V];
     previous = current;
 }
 
@@ -322,7 +359,7 @@ void update_vaccination_weights(board& b) {
 
 /**
 * Converts the latitude and longitude to Radians for Distance Calculation.
-* @param degree Takes the Coordinate to translate. 
+* @param degree Takes the Coordinate to translate.
 */
 
 long double toRadians(const long double degree)
@@ -361,7 +398,7 @@ int toDistance(std::tuple<double,double> loc1, std::tuple<double,double> loc2)
 
     ans = 2 * asin(sqrt(ans));
 
-    // Sets radius of the earth, 6371 for KM and 3956 for miles  
+    // Sets radius of the earth, 6371 for KM and 3956 for miles
     double R = 6371;
     ans = ans * R; //Calculate final distance.
 
@@ -369,9 +406,9 @@ int toDistance(std::tuple<double,double> loc1, std::tuple<double,double> loc2)
 }
 
 /**
-* Calculates weights for a community based on size and distance to other communities. 
-* @param comm The vector containing all the communities. 
-* @param curr The community to calculate weights for. 
+* Calculates weights for a community based on size and distance to other communities.
+* @param comm The vector containing all the communities.
+* @param curr The community to calculate weights for.
 */
 std::vector<double> calculateWeight(std::vector<board>& comm,board& curr) {
     std::vector<double> weights = {};
@@ -407,7 +444,7 @@ std::vector<double> calculateWeight(std::vector<board>& comm,board& curr) {
  * @param board The board to perform vaccinations in
  * @param n_vaccinations The number of vaccinations to perform
  */
-void vaccinate(board& b, unsigned int n_vaccinations) {
+void vaccinate(board& b, unsigned int n_vaccinations, unsigned int t) {
     // Make sure we don't perform more vaccinations than there are unvaccinated agents
     n_vaccinations = std::min((size_t)n_vaccinations, b.agents.size() - b.vaccinations_started);
     if (n_vaccinations == 0 || b.vaccination_weight_sum == 0) {
@@ -437,7 +474,7 @@ void vaccinate(board& b, unsigned int n_vaccinations) {
         unsigned int agent = it - cumulative_weights.begin();
         // Atomically check if this agent has been vaccinated this round
         if (!vaccinated[agent].test_and_set()) {
-            vaccinate(b.agents[agent]);
+            vaccinate(b.agents[agent], t);
             b.vaccinations_started.fetch_add(1, std::memory_order_acq_rel);
             b.vaccination_weight_sum.fetch_sub(b.vaccination_weights[agent], std::memory_order_acq_rel);
             b.vaccination_weights[agent] = 0;
@@ -449,7 +486,7 @@ void vaccinate(board& b, unsigned int n_vaccinations) {
     }
     if (collisions > 0) {
         // Redo the vaccinations that collided. It might be better to use a collision-free algorithm here.
-        vaccinate(b, collisions);
+        vaccinate(b, collisions, t);
     }
 }
 
@@ -457,7 +494,7 @@ void vaccinate(board& b, unsigned int n_vaccinations) {
 /**
 * Picks a random community to travel to based on weights.
 * @param items The list of weights from the given community to another.
-* @param gen The generator object that is used to randomize numbers. 
+* @param gen The generator object that is used to randomize numbers.
 */
 int weightRand(std::vector<double> items, std::mt19937_64& gen) {
 
@@ -466,7 +503,7 @@ int weightRand(std::vector<double> items, std::mt19937_64& gen) {
     {
         cumulative += items[i];
     }
-    
+
     std::uniform_real_distribution move_dist(0.0, cumulative);
     //std::uniform_real_distribution move_dist(0.0, cumulative);
     double rand = move_dist(gen);
@@ -521,7 +558,7 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
 * Move functionality, allowing agents to be moved between communities at random based of weights and population sizes.
 * @param curr_board The list of current communities.
 * @param agents The amount of agents to be swapped.
-* @param weight The list of community population sizes. 
+* @param weight The list of community population sizes.
 */
 void moveAgents(std::vector<board>& curr_board, int agents, std::vector<int> weight) {
     std::mt19937_64 gen = generators[0];
@@ -547,7 +584,7 @@ void moveAgents(std::vector<board>& curr_board, int agents, std::vector<int> wei
 }
 
 int main() {
-    
+
     // Create random generators
     unsigned int n_threads;
     // seems like we have to run omp_get_num_threads in a parallel region to get the actual number of threads
@@ -603,7 +640,7 @@ int main() {
         curr_board[i].weights = weights;
         prev_board[i].weights = weights;
     }
-    
+
 
     /*for (int i = 0; i < curr_board.size(); i++)
     {
@@ -649,7 +686,7 @@ int main() {
             if (t > VACCINATION_START) {
                 // TODO: we can optimize this by avoiding to update weights when there are no vaccinations left to do
                 update_vaccination_weights(curr_board[i]);
-                vaccinate(curr_board[i], VACCINATIONS_PER_DAY);
+                vaccinate(curr_board[i], VACCINATIONS_PER_DAY, t);
             }
         }
 
