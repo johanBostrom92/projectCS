@@ -474,7 +474,7 @@ int main() {
         file.open("..\\lib\\built_covid_data\\coviddata.csv", std::ios::app);
 
         // Initialize first row
-        file << "city" << ";" << "popu" << ";" << "lat" << ";" << "long" << ";" << "month" << ";" << "agent" << std::endl;
+        file << "city" << ";" << "popu" << ";" << "lat" << ";" << "long" << ";" << "time-step" << ";" << "agent" << std::endl;
         file.close();
     }
 
@@ -486,7 +486,7 @@ int main() {
 
 
     { //Loop tracking
-        if (t % 10 == 0) {
+        if (t % TIMESTEP == 0) {
             for (int i = 0; i < curr_board.size(); i++)
             {
                 visualization_of_board(curr_board[i], t);
