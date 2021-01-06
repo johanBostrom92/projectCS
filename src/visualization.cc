@@ -5,8 +5,10 @@
 #include <omp.h>
 #include <fstream>
 #include <iostream>
+#include <stdio.h>
 
 
+/*
 void scatterplot(board b) {
     //Transform array index to X,Y cordinates as col,row
 
@@ -127,6 +129,7 @@ void scatterplot(board b) {
     }
 }
 
+
 std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, std::vector<int>>  read_data_from_csv() {
     std::vector<std::string> cities = {};
     std::vector<std::tuple<double, double>> coordinates = {};
@@ -137,9 +140,10 @@ std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, st
     //transform(city.begin(), city.end(), city.begin(), ::tolower);
     
     std::ifstream data_file;
-    data_file.open("..\\lib\\cities_data\\cities_swe.csv");
-    //TODO: make it possible to supply custom path
-
+    std::string file_name = CITIES_INPUT;
+    std::string path = "..//lib//cities_data//" + file_name;
+    data_file.open(path);
+    std::cout << "Successfully read file " << path << std::endl;
     std::string name;
     std::string lat;
     std::string lat_long;
@@ -158,7 +162,6 @@ std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, st
         std::getline(data_file, population, '\n');
        
 
-      
         std::tuple tmp = std::make_tuple(stod(lat), stod(lat_long));
         if (!name.empty()){
               cities.push_back(name);
@@ -180,7 +183,7 @@ std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, st
  */
 std::string translate_agent_status(agent_status status) {
     if (status == S) {
-        return "Susceptable";
+        return "Susceptible";
     }     if (status == A) {
         return "Asymptomatic";
     }     if (status == V) {
@@ -198,7 +201,7 @@ void write_data_to_csv(std::string city, agent_status status[], std::vector<unsi
     // create our file
     std::ofstream file;
 
-    file.open("..\\lib\\built_covid_data\\coviddata.csv", std::ios::app);
+    file.open("..//lib//built_covid_data//coviddata.csv", std::ios::app);
 
 
     for (int i = 0; i < STATES_COUNT; i++) {
