@@ -459,15 +459,16 @@ int main() {
 
     for (int i = 0; i < curr_board.size(); i++)
     {
-        std::cout << "Hello name : " << std::get<0>(curr_board[i].lat_long) << " " << std::get<1>(curr_board[i].lat_long) << std::endl;
+        //std::cout << "Hello name : " << std::get<0>(curr_board[i].lat_long) << " " << std::get<1>(curr_board[i].lat_long) << std::endl;
     }
     //std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
     if (remove("..\\lib\\built_covid_data\\coviddata.csv") != 0) {
-        perror("Error deleting file");
+        perror("Error deleting covid data file");
     }
     else {
-        puts("File successfully deleted");
+        puts("Covid data file successfully deleted.");
+        puts("Writing new data to file...");
         std::ofstream file;
 
         file.open("..\\lib\\built_covid_data\\coviddata.csv", std::ios::app);

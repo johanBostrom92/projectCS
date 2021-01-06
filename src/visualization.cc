@@ -78,11 +78,6 @@ void scatterplot(board b) {
 
         int size = 8; //TODO fix dynamical size depending on table DIM size. 
 
-        //dummy algoritm
-        // set size of graph window
-        //based on DIM calculate amount of circles given a radius 
-        // set size as calculated radius 
-
         hold(on);
 #pragma omp parallel sections
         {
@@ -132,47 +127,6 @@ void scatterplot(board b) {
     }
 }
 
-/**
- * Returns the lat long of a location
- * the location needs to exist in the cities_swe.csv file
- * the location need to be written with {å,ä,ö} -> {aa, ae, oe}
- * the function changes location to lower case so casing dosn't matter
- * @param a string of the city name
- * @return a tuple with (lat,long) coordinates
- */
-/*
-std::tuple<double, double> get_lat_long(std::string city) {
-    using namespace std;
-
-    transform(city.begin(), city.end(), city.begin(), ::tolower);
-
-    ifstream data_file;
-    data_file.open("..\\lib\\cities_data\\cities_swe.csv");
-
-    string name;
-    string lat;
-    string lat_long;
-
-
-    while (data_file.good()) {
-
-        getline(data_file, name, ';');
-        getline(data_file, lat, ';');
-        getline(data_file, lat_long, '\n');
-
-        if (name.compare(city) == 0) {
-            tuple res = make_tuple(stod(lat), stod(lat_long));
-            data_file.close();
-            return res;
-        }
-    }
-    data_file.close();
-
-    return make_tuple(0, 0);
-}
-*/
-
-
 std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, std::vector<int>>  read_data_from_csv() {
     std::vector<std::string> cities = {};
     std::vector<std::tuple<double, double>> coordinates = {};
@@ -202,13 +156,15 @@ std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, st
         std::getline(data_file, lat_long, ';');
         std::getline(data_file, country, ';');
         std::getline(data_file, population, '\n');
+       
 
-        //std::cout << "Hello name : " << name << "  " << lat << " " << lat_long << " " << country << " " << std::stoi(population) << std::endl;
+      
         std::tuple tmp = std::make_tuple(stod(lat), stod(lat_long));
-
-        cities.push_back(name);
-        coordinates.push_back(tmp);
-        populations.push_back(std::stoi(population));
+        if (!name.empty()){
+              cities.push_back(name);
+            coordinates.push_back(tmp);
+            populations.push_back(std::stoi(population));
+        }
     }
     data_file.close();
 
@@ -250,7 +206,8 @@ void write_data_to_csv(std::string city, agent_status status[], std::vector<unsi
         
         //TODO: send tuple!
         std::string trans_status = translate_agent_status(status[i]);
-        file << city << ";" << size[i] / SCALE << ";" << std::get<0>(lat_long) << ";" << std::get<1>(lat_long) << ";" << time_unit << ";" << trans_status << std::endl;
+  
+        file << city << ";" << size[i]/SCALE << ";" << std::get<0>(lat_long) << ";" << std::get<1>(lat_long) << ";" << time_unit << ";" << trans_status << std::endl;
 
     }
 
@@ -261,12 +218,6 @@ void write_data_to_csv(std::string city, agent_status status[], std::vector<unsi
 
 void visualization_of_board(board b, unsigned int t) {
     if (PLOT) {
-
-        // Test data
-       /* std::string test[4] = {"stockholm", "Uppsala", "Malmoe", "Goeteborg"};
-        agent_status test2[4] = {A,S,S,A};
-        int test_pop[4] = {2010, 500, 545, 5789};
-        int time_unit[4] = {1,1,1,1}; */
 
         std::vector<unsigned int> population = {};
         agent_status status_name[5] = { S, A, I, V, R };

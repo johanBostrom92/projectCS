@@ -18,7 +18,7 @@ fig = px.scatter_geo(df, size="popu" ,lat="lat", lon="long", hover_name="city", 
 
 
 fig.update_layout(
-        title_text = 'Corona spread 20XX',
+        title_text = 'COVID19 spread 20XX',
         showlegend = True,
         geo = dict(
             scope = 'europe',
