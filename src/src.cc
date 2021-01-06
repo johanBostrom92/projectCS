@@ -116,14 +116,14 @@ void step(board& previous, board& current, int t) {
 
     std::vector<std::vector<std::pair<unsigned int, agent>>> total_changes;
     int total_status_changes[STATES_COUNT+1];
-    std::memset(total_status_changes, 0, sizeof(*total_status_changes * (STATES_COUNT + 1)));
+    std::memset(total_status_changes, 0, sizeof(*total_status_changes) * (STATES_COUNT + 1));
 
 
 #pragma omp parallel
     {
     std::vector<std::pair<unsigned int, agent>> changes;
     int status_changes[STATES_COUNT+1];
-    std::memset(total_status_changes, 0, sizeof(*total_status_changes * STATES_COUNT));
+    std::memset(status_changes, 0, sizeof(*status_changes) * (STATES_COUNT+1));
 #ifdef _WIN32
 #pragma omp for
 #else
@@ -267,7 +267,7 @@ void step(board& previous, board& current, int t) {
     #pragma omp critical
     {
         total_changes.push_back(std::move(changes));
-        for (int s = 0; s < STATES_COUNT; s++) {
+        for (int s = 0; s < STATES_COUNT + 1; s++) {
             total_status_changes[s] += status_changes[s];
         }
     }
