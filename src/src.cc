@@ -623,13 +623,14 @@ int main() {
         file.open("..//lib//built_covid_data//coviddata.csv", std::ios::app);
 
         // Initialize first row
-        file << "city" << ";" << "popu" << ";" << "lat" << ";" << "long" << ";" << "month" << ";" << "agent" << std::endl;
+        puts("Initializing new data file.");
+        file << "city" << ";" << "popu" << ";" << "lat" << ";" << "long" << ";" << "time-step" << ";" << "agent" << std::endl;
         file.close();
     }
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking
-        if (t % 10 == 0) {
+        if (t % TIMESTEP == 0) {
             for (int i = 0; i < curr_board.size(); i++)
             {
                 visualization_of_board(curr_board[i], t);
@@ -691,6 +692,16 @@ int main() {
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
         std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;
     }
+        Py_Initialize();
+
+    //Run a simple file
+    FILE* PScriptFile = fopen("..\\src\\geoplotter.py", "r");
+    if (PScriptFile) {
+        PyRun_SimpleFile(PScriptFile, "..\\src\\geoplotter.py");
+        fclose(PScriptFile);
+    }
+    //Close the python instance
+    Py_Finalize();
     std::cout << "Press Enter to exit..." << std::endl;
     std::cin.get();
     return 0;
