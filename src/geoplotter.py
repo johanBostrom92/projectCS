@@ -14,11 +14,11 @@ df.head()
 
 
 #create the actual map
-fig = px.scatter_geo(df, size="popu" ,lat="lat", lon="long", hover_name="city", animation_frame="month", color="agent")
+fig = px.scatter_geo(df, size="popu" ,lat="lat", lon="long", hover_name="city", animation_frame="time-step", color="agent")
 
 
 fig.update_layout(
-        title_text = 'Corona spread 20XX',
+        title_text = 'COVID19 spread 20XX',
         showlegend = True,
         geo = dict(
             scope = 'europe',

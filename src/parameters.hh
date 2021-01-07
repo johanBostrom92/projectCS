@@ -22,12 +22,15 @@
 #define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 #define PLOT true   // if we want to do plots (increases execution time drastically)
 #define SCALE 1 //scale for geobubble plot. 
+#define TIMESTEP 10 // An interval that dictates when data is to be written to .csv data file 
+
 #define SWAP_AMOUNT 1500 // sets the amount of agents to swap each time unit. 
 
 //The two variables that determines reinfection times. 
 //To disable reinfection, set min & max value to max simulation time plus one (MAX_TIME+1).
 #define RECOVERED_MIN_THRESHOLD 20 // The minimum amount of immunity-days after a recovered agent can be reinfected again.
 #define RECOVERED_MAX_THRESHOLD MAX_TIME // The maxmimum amount of immunity-days after a recovered agent can be reinfected again. Default is the max simulation time
+
 
 #define VACCINATION_RATE 28 //The time it takes for the vaccine to work
 #define VACCINATION_EFFICACY 75 //The efficiency of the vaccine
