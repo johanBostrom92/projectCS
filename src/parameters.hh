@@ -23,7 +23,7 @@
 #define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 #define PLOT true   // if we want to do plots (increases execution time drastically)
 #define SCALE 1 //scale for geobubble plot. 
-#define TIMESTEP 100 // An interval that dictates when data is to be written to .csv data file 
+#define SAVE_STEP 10 // An interval that dictates when data is to be written to .csv data file 
 
 #define SWAP_AMOUNT 10000 // sets the amount of agents to swap each time unit. 
 

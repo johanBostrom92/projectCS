@@ -621,7 +621,7 @@ int main() {
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking
-        if (t % TIMESTEP == 0) {
+        if (t % SAVE_STEP == 0) {
             for (int i = 0; i < curr_board.size(); i++)
             {
                 visualization_of_board(curr_board[i], t);
