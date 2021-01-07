@@ -146,14 +146,15 @@ void step(board& previous, board& current, int t) {
                     continue;
                 }
                 int rad = self.infection_radius;
-                if (ENABLE_QUARANTINE) {
+                
+                if (ENABLE_QUARANTINE && t >= QUARANTINE_START && t <= QUARANTINE_END) {
                     std::uniform_int_distribution<int> quarantine_dis(0, 99);
                     int quarantine_chance = quarantine_dis(gen);
-                if (t >= QUARANTINE_START && t <= QUARANTINE_END && quarantine_chance <= QUARANTINE_EFFICACY-1) {
-                    rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE_START))) / LAMBDA));
-
+                    if (quarantine_chance <= QUARANTINE_EFFICACY-1) {
+                        rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE_START))) / LAMBDA));
+                    }
                 }
-            }
+                
                 if (rad <= 0) {
                     continue;
                 }
