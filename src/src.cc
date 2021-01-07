@@ -147,11 +147,11 @@ void step(board& previous, board& current, int t) {
                 int rad = self.infection_radius;
                 
                 if (ENABLE_QUARANTINE && t >= QUARANTINE_START && t <= QUARANTINE_END) {
-                    std::uniform_int_distribution<int> quarantine_dis(0, 99);
-                    int quarantine_chance = quarantine_dis(gen);
-                    if (quarantine_chance <= QUARANTINE_EFFICACY-1) {
-                        rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE_START))) / LAMBDA));
-                    }
+                        std::uniform_int_distribution<int> quarantine_dis(0, 99);
+                        int quarantine_chance = quarantine_dis(gen);
+                        if (quarantine_chance <= QUARANTINE_EFFICACY - 1) {
+                            rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE_START))) / LAMBDA));
+                        }
                 }
                 
                 if (rad <= 0) {
@@ -190,7 +190,7 @@ void step(board& previous, board& current, int t) {
                     agent& otherCurr = current.agents[y_other * current.dim + x_other];
                     std::uniform_int_distribution<int> dis4(RECOVERED_MIN_THRESHOLD, RECOVERED_MAX_THRESHOLD);
                     int rand4 = dis4(gen);
-                    if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED + RECOVERY_RATE) >= rand4) {
+                    if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED - RECOVERY_RATE) >= rand4) {
                         //Time to get reinfected!
                         current.status_counts[R]--;
                         otherCurr.status = S;
@@ -233,7 +233,7 @@ void step(board& previous, board& current, int t) {
                     }
                     std::uniform_int_distribution<int> dis4(RECOVERED_MIN_THRESHOLD, RECOVERED_MAX_THRESHOLD);
                     int rand4 = dis4(gen);
-                    if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED + RECOVERY_RATE) >= rand4) {
+                    if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED - RECOVERY_RATE) >= rand4) {
                         //Time to get reinfected!
                         current.status_counts[R]--;
                         otherCurr.status = S;
@@ -621,7 +621,7 @@ int main() {
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking
-        if (t % TIMESTEP == 0) {
+        if (t % SAVE_STEP == 0) {
             for (int i = 0; i < curr_board.size(); i++)
             {
                 visualization_of_board(curr_board[i], t);
