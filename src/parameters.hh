@@ -13,27 +13,28 @@
 
 //#define DIM 7 //The population of the community
 #define MAX_TIME 365 //The amount of timesteps to run the simulation
-#define STARTER_AGENTS 10 //The amount of agents which starts the simulation infected
+#define STARTER_AGENTS 4 //The amount of agents which starts the simulation infected
 #define QUARANTINE_START 5 //The timestep until agents starts quarantining
 #define ENABLE_QUARANTINE false //The flag to enable quarantine
 #define LAMBDA 2.5  // How fast the INFECTION_RADIUS decrease in case of a lock down
 #define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 #define PLOT true   // if we want to do plots (increases execution time drastically)
-#define SCALE 1 //scale for geobubble plot. 
-#define SWAP_AMOUNT 1500 // sets the amount of agents to swap each time unit. 
+#define SCALE 1 //scale for geobubble plot.
+#define SWAP_AMOUNT 1500 // sets the amount of agents to swap each time unit.
 
 #define VACCINATION_RATE 28 //The time it takes for the vaccine to work
 #define VACCINATION_EFFICACY 75 //The efficiency of the vaccine
-#define VACCINATION_START 180    // The time at which to begin vaccinating people
-#define VACCINATIONS_PER_DAY 1000  // The number of people we can vaccinate per day
+#define VACCINATION_START 10    // The time at which to begin vaccinating people
+#define VACCINATIONS_PER_DAY 10000  // The number of people we can vaccinate per day
 
 enum class vaccination_strategy {
-    UNIFORM,       // Every agents has equal change of being vaccinated
+    UNIFORM,       // Every agent has an equal chance of being vaccinated
     HIGH_DENSITY,  // Agents in areas with a high density of infected agents have a *higher* chance of being vaccinated
     LOW_DENSITY    // Agents in areas with a high density of infected agents have a *lower* chance of being vaccinated
 };
 
-constexpr vaccination_strategy VACC_STRAT = vaccination_strategy::HIGH_DENSITY;
+constexpr vaccination_strategy MICRO_VACC_STRAT = vaccination_strategy::UNIFORM;
+constexpr vaccination_strategy MACRO_VACC_STRAT = vaccination_strategy::LOW_DENSITY;
 
 
 /**
