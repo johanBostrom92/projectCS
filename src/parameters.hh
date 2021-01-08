@@ -7,24 +7,35 @@
 #define INFECTION_PROBABILITY 25 //Probability for an agent to infect another
 #define MAKE_ASYM 50 //The probability that an infected individual is asymptomatic
 #define ASYM_INF_PROB 10 //The probability for asymptomatic carriers to infect others
-#define RECOVERED_MIN_THRESHOLD 20 //Get randomzied value from 60 - 180 Can bugg out after 300  timesteps
-#define RECOVERED_MAX_THRESHOLD 365 //Get randomzied value from 60 - 180
-//#define SWAPPABLE_AGENTS 10
 
-//#define DIM 7 //The population of the community
+#define CITIES_INPUT "cities_swe.csv"
+
 #define MAX_TIME 365 //The amount of timesteps to run the simulation
-#define STARTER_AGENTS 4 //The amount of agents which starts the simulation infected
-#define QUARANTINE_START 5 //The timestep until agents starts quarantining
+#define STARTER_AGENTS 10 //The amount of agents which starts the simulation infected
+
+//The quarantine variables
 #define ENABLE_QUARANTINE false //The flag to enable quarantine
+#define QUARANTINE_START 110 //The specific timestep when quarantining begins
+#define QUARANTINE_END 120 //The specific timestep when quarantining stops
+#define QUARANTINE_EFFICACY 70 //The efficiency of the quarantine (how much of the population that actually follows the quarantine)
 #define LAMBDA 2.5  // How fast the INFECTION_RADIUS decrease in case of a lock down
+
 #define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 #define PLOT true   // if we want to do plots (increases execution time drastically)
 #define SCALE 1 //scale for geobubble plot.
-#define SWAP_AMOUNT 1500 // sets the amount of agents to swap each time unit.
+#define SAVE_STEP 10 // An interval that dictates when data is to be written to .csv data file
+
+#define SWAP_AMOUNT 10000 // sets the amount of agents to swap each time unit.
+
+//The two variables that determines reinfection times.
+//To disable reinfection, set min & max value to max simulation time plus one (MAX_TIME+1).
+#define RECOVERED_MIN_THRESHOLD 20 // The minimum amount of immunity-days after a recovered agent can be reinfected again.
+#define RECOVERED_MAX_THRESHOLD 80 // The maxmimum amount of immunity-days after a recovered agent can be reinfected again.
+
 
 #define VACCINATION_RATE 28 //The time it takes for the vaccine to work
 #define VACCINATION_EFFICACY 75 //The efficiency of the vaccine
-#define VACCINATION_START 10    // The time at which to begin vaccinating people
+#define VACCINATION_START 200    // The time at which to begin vaccinating people
 #define VACCINATIONS_PER_DAY 10000  // The number of people we can vaccinate per day
 
 enum class vaccination_strategy {

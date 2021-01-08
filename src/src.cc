@@ -1,3 +1,4 @@
+
 #define _USE_MATH_DEFINES
 #include "types.hh"
 #include "parameters.hh"
@@ -17,7 +18,7 @@
 #include <visualization.hh>
 #include <cassert>
 #include <iomanip>
-
+#include <Python.h>
 
 
 
@@ -44,8 +45,6 @@ void print_board(board& b, std::string name, int t) {
     std::cout << std::endl << std::endl << "Susceptible: " << b.status_counts[S] << std::endl << "Recovered: " << b.status_counts[R] << std::endl << "Infected: " << b.status_counts[I] << std::endl << "Asymptomatic: " << b.status_counts[A] << std::endl << "Vaccinated: " << b.status_counts[V];
     std::cout << std::endl << "-----------------------------" << std::endl << std::endl;
 }
-
-//          move(uppsala_prev, sthlm_prev, 0);
 
 
 /**
@@ -146,10 +145,15 @@ void step(board& previous, board& current, int t) {
                     continue;
                 }
                 int rad = self.infection_radius;
-                if (t >= QUARANTINE_START && ENABLE_QUARANTINE) {
-                    rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE_START))) / LAMBDA));
 
+                if (ENABLE_QUARANTINE && t >= QUARANTINE_START && t <= QUARANTINE_END) {
+                        std::uniform_int_distribution<int> quarantine_dis(0, 99);
+                        int quarantine_chance = quarantine_dis(gen);
+                        if (quarantine_chance <= QUARANTINE_EFFICACY - 1) {
+                            rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE_START))) / LAMBDA));
+                        }
                 }
+
                 if (rad <= 0) {
                     continue;
                 }
@@ -186,7 +190,7 @@ void step(board& previous, board& current, int t) {
                     agent& otherCurr = current.agents[y_other * current.dim + x_other];
                     std::uniform_int_distribution<int> dis4(RECOVERED_MIN_THRESHOLD, RECOVERED_MAX_THRESHOLD);
                     int rand4 = dis4(gen);
-                    if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED + RECOVERY_RATE) >= rand4) {
+                    if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED - RECOVERY_RATE) >= rand4) {
                         //Time to get reinfected!
                         current.status_counts[R]--;
                         otherCurr.status = S;
@@ -229,7 +233,7 @@ void step(board& previous, board& current, int t) {
                     }
                     std::uniform_int_distribution<int> dis4(RECOVERED_MIN_THRESHOLD, RECOVERED_MAX_THRESHOLD);
                     int rand4 = dis4(gen);
-                    if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED + RECOVERY_RATE) >= rand4) {
+                    if (!infected[y_other * current.dim + x_other].test_and_set() && other.status == R && (t - other.DAY_INFECTED - RECOVERY_RATE) >= rand4) {
                         //Time to get reinfected!
                         current.status_counts[R]--;
                         otherCurr.status = S;
@@ -572,13 +576,6 @@ int main() {
     }
 
 
-
-    //std::vector<std::string> comm_names = { "Uppsala", "Stockholm", "Eskilstuna" }; //Provided by user
-    //std::vector<double> weight = {             0.34,       0.33,       0.33 }; //Provided by user
-    //std::vector<std::vector<double>> inter_weight = { {1.0, 0.7, 0.3}, {0.7, 1.0, 0.3}, {0.4, 0.6, 1.0} }; //Provided by user
-    //int population = 100000; //Provided by user
-
-
     //read_data_long = (cities, coordinates, population)
     std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, std::vector<int>> csv_data = read_data_from_csv();
 
@@ -618,31 +615,27 @@ int main() {
         prev_board[i].weights = weights;
     }
 
-
-    /*for (int i = 0; i < curr_board.size(); i++)
-    {
-        std::cout << "Hello name : " << std::get<0>(curr_board[i].lat_long) << " " << std::get<1>(curr_board[i].lat_long) << std::endl;
-    }*/
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
 
-    if (remove("..\\lib\\built_covid_data\\coviddata.csv") != 0) {
+    if (remove("..//lib//built_covid_data//coviddata.csv") != 0) {
         perror("Error deleting file");
     }
     else {
-        puts("File successfully deleted");
+        puts("Successfully deleted the old data file");
         std::ofstream file;
 
-        file.open("..\\lib\\built_covid_data\\coviddata.csv", std::ios::app);
+        file.open("..//lib//built_covid_data//coviddata.csv", std::ios::app);
 
         // Initialize first row
-        file << "city" << ";" << "popu" << ";" << "lat" << ";" << "long" << ";" << "month" << ";" << "agent" << std::endl;
+        puts("Initializing new data file.");
+        file << "city" << ";" << "popu" << ";" << "lat" << ";" << "long" << ";" << "time-step" << ";" << "agent" << std::endl;
         file.close();
     }
 
     for (unsigned int t = 0; t < MAX_TIME; t++)
     { //Loop tracking
-        if (t % 10 == 0) {
+        if (t % SAVE_STEP == 0) {
             for (int i = 0; i < curr_board.size(); i++)
             {
                 //visualization_of_board(curr_board[i], t);
@@ -721,7 +714,18 @@ int main() {
         std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
         std::cout << std::endl << "It took  " << time_span.count() << " seconds." << std::endl;
     }
+        Py_Initialize();
+
+    //Run a simple file
+    FILE* PScriptFile = fopen("..//src//geoplotter.py", "r");
+    if (PScriptFile) {
+        PyRun_SimpleFile(PScriptFile, "..//src//geoplotter.py");
+        fclose(PScriptFile);
+    }
+    //Close the python instance
+    Py_Finalize();
     std::cout << "Press Enter to exit..." << std::endl;
     std::cin.get();
     return 0;
 }
+
