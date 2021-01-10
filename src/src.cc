@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <visualization.hh>
 #include <cassert>
-#include <iomanip> 
+#include <iomanip>
 #include <Python.h>
 
 
@@ -135,7 +135,7 @@ void step(board& previous, board& current, int t) {
                     }
                 }
             }
-             
+
             if (self.status == I || self.status == A) { //The infected checks for susceptible neighbors within the box.
                 currentSelf.recovery_rate--;
                 if (currentSelf.recovery_rate == 0) {
@@ -145,7 +145,7 @@ void step(board& previous, board& current, int t) {
                     continue;
                 }
                 int rad = self.infection_radius;
-                
+
                 if (ENABLE_QUARANTINE && t >= QUARANTINE_START && t <= QUARANTINE_END) {
                         std::uniform_int_distribution<int> quarantine_dis(0, 99);
                         int quarantine_chance = quarantine_dis(gen);
@@ -153,7 +153,7 @@ void step(board& previous, board& current, int t) {
                             rad = static_cast<double>(self.infection_radius) * exp(((-(t - static_cast<double>(QUARANTINE_START))) / LAMBDA));
                         }
                 }
-                
+
                 if (rad <= 0) {
                     continue;
                 }
@@ -264,11 +264,11 @@ void update_vaccination_weights(board& b) {
     b.vaccination_weight_sum = 0;
     std::vector<unsigned int> tmp(b.vaccination_weights.size());
 
-    if constexpr (VACC_STRAT == vaccination_strategy::UNIFORM) {
+    if constexpr (MICRO_VACC_STRAT == vaccination_strategy::UNIFORM) {
         std::fill(b.vaccination_weights.begin(), b.vaccination_weights.end(), 1);
         b.vaccination_weight_sum = b.vaccination_weights.size();
     }
-    else if constexpr (VACC_STRAT == vaccination_strategy::HIGH_DENSITY || VACC_STRAT == vaccination_strategy::LOW_DENSITY) {
+    else if constexpr (MICRO_VACC_STRAT == vaccination_strategy::HIGH_DENSITY || MICRO_VACC_STRAT == vaccination_strategy::LOW_DENSITY) {
         // Essentially, this is a box blur, which we can separate into one pass for each axis
         // (we first blur on the x axis and store it to tmp, then blur tmp on the y axis and store it back to the board)
 #pragma omp parallel for
@@ -306,7 +306,7 @@ void update_vaccination_weights(board& b) {
             }
         }
         for (int i = 0; i < b.agents.size(); i++) {
-            if constexpr (VACC_STRAT == vaccination_strategy::HIGH_DENSITY) {
+            if constexpr (MICRO_VACC_STRAT == vaccination_strategy::HIGH_DENSITY) {
                 b.vaccination_weights[i] += 1;
             }
             else {
@@ -317,7 +317,7 @@ void update_vaccination_weights(board& b) {
     }
     // Regardless of vaccination strategy, perform a final pass to remove weight from those already vaccinated
     for (int i = 0; i < b.agents.size(); i++) {
-        if (b.agents[i].status == V || b.agents[i].vaccination_progress || b.agents[i].status == R) {
+        if (b.agents[i].status == V || b.agents[i].vaccination_progress) {
             b.vaccination_weight_sum -= b.vaccination_weights[i];
             b.vaccination_weights[i] = 0;
         }
@@ -326,7 +326,7 @@ void update_vaccination_weights(board& b) {
 
 /**
 * Converts the latitude and longitude to Radians for Distance Calculation.
-* @param degree Takes the Coordinate to translate. 
+* @param degree Takes the Coordinate to translate.
 */
 
 long double toRadians(const long double degree)
@@ -365,7 +365,7 @@ int toDistance(std::tuple<double,double> loc1, std::tuple<double,double> loc2)
 
     ans = 2 * asin(sqrt(ans));
 
-    // Sets radius of the earth, 6371 for KM and 3956 for miles  
+    // Sets radius of the earth, 6371 for KM and 3956 for miles
     double R = 6371;
     ans = ans * R; //Calculate final distance.
 
@@ -373,9 +373,9 @@ int toDistance(std::tuple<double,double> loc1, std::tuple<double,double> loc2)
 }
 
 /**
-* Calculates weights for a community based on size and distance to other communities. 
-* @param comm The vector containing all the communities. 
-* @param curr The community to calculate weights for. 
+* Calculates weights for a community based on size and distance to other communities.
+* @param comm The vector containing all the communities.
+* @param curr The community to calculate weights for.
 */
 std::vector<double> calculateWeight(std::vector<board>& comm,board& curr) {
     std::vector<double> weights = {};
@@ -407,15 +407,17 @@ std::vector<double> calculateWeight(std::vector<board>& comm,board& curr) {
 
 
 /**
- * Vaccinates a number of agents in the board, based on the board's vaccination weights
+ * Vaccinates a number of agents in the board, based on the board's vaccination weights.
+ * Note that the actual number of vaccinations performed may be lower than requested.
  * @param board The board to perform vaccinations in
- * @param n_vaccinations The number of vaccinations to perform
+ * @param n_vaccinations The (maximum) number of vaccinations to perform
+ * @returns The actual number of vaccinations performed
  */
-void vaccinate(board& b, unsigned int n_vaccinations) {
+unsigned int vaccinate(board& b, unsigned int n_vaccinations) {
     // Make sure we don't perform more vaccinations than there are unvaccinated agents
     n_vaccinations = std::min((size_t)n_vaccinations, b.agents.size() - b.vaccinations_started);
     if (n_vaccinations == 0 || b.vaccination_weight_sum == 0) {
-        return;
+        return 0;
     }
 
     // For each agent, compute the combined weight of it and all agents with a lower index
@@ -430,9 +432,11 @@ void vaccinate(board& b, unsigned int n_vaccinations) {
 
     std::uniform_int_distribution<unsigned int> dis(1, (int)b.vaccination_weight_sum); // Generates (cumulative) weight values determining who gets vaccinated
     std::vector<std::atomic_flag> vaccinated(b.agents.size());  // Stores which agents have been vaccinated this round
-    unsigned int collisions = 0;
 
-#pragma omp parallel for
+    unsigned int collisions = 0;
+    unsigned int original_vaccinations = b.vaccinations_started;
+
+//#pragma omp parallel for
     for (int i = 0; i < n_vaccinations; i++) {
         std::mt19937_64& gen = generators[omp_get_thread_num()];
         uint64_t n = dis(gen);
@@ -455,13 +459,14 @@ void vaccinate(board& b, unsigned int n_vaccinations) {
         // Redo the vaccinations that collided. It might be better to use a collision-free algorithm here.
         vaccinate(b, collisions);
     }
+    return b.vaccinations_started - original_vaccinations;
 }
 
 
 /**
 * Picks a random community to travel to based on weights.
 * @param items The list of weights from the given community to another.
-* @param gen The generator object that is used to randomize numbers. 
+* @param gen The generator object that is used to randomize numbers.
 */
 int weightRand(std::vector<double> items, std::mt19937_64& gen) {
 
@@ -470,7 +475,7 @@ int weightRand(std::vector<double> items, std::mt19937_64& gen) {
     {
         cumulative += items[i];
     }
-    
+
     std::uniform_real_distribution move_dist(0.0, cumulative);
     //std::uniform_real_distribution move_dist(0.0, cumulative);
     double rand = move_dist(gen);
@@ -513,11 +518,19 @@ int weightRand(std::vector<int> items, std::mt19937_64& gen) {
 
 
 
-void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
+void updateBoard(board& from, board& to, const agent& agentFrom, const agent& agentTo) {
     from.status_counts[agentTo.status]++;
     from.status_counts[agentFrom.status]--;
     to.status_counts[agentFrom.status]++;
     to.status_counts[agentTo.status]--;
+    if (agentTo.vaccination_progress) {
+        to.vaccinations_started--;
+        from.vaccinations_started++;
+    }
+    if (agentFrom.vaccination_progress) {
+        from.vaccinations_started--;
+        to.vaccinations_started++;
+    }
 }
 
 
@@ -525,7 +538,7 @@ void updateBoard(board& from, board& to, agent agentFrom, agent agentTo) {
 * Move functionality, allowing agents to be moved between communities at random based of weights and population sizes.
 * @param curr_board The list of current communities.
 * @param agents The amount of agents to be swapped.
-* @param weight The list of community population sizes. 
+* @param weight The list of community population sizes.
 */
 void moveAgents(std::vector<board>& curr_board, int agents, std::vector<int> weight) {
     std::mt19937_64 gen = generators[0];
@@ -551,7 +564,7 @@ void moveAgents(std::vector<board>& curr_board, int agents, std::vector<int> wei
 }
 
 int main() {
-    
+
     // Create random generators
     unsigned int n_threads;
     // seems like we have to run omp_get_num_threads in a parallel region to get the actual number of threads
@@ -566,7 +579,6 @@ int main() {
     //read_data_long = (cities, coordinates, population)
     std::tuple<std::vector<std::string>, std::vector<std::tuple<double, double>>, std::vector<int>> csv_data = read_data_from_csv();
 
-    std::vector<int> dimensions = {};
 
     std::vector<board> prev_board = {};
     std::vector<board> curr_board = {};
@@ -576,15 +588,17 @@ int main() {
     std::vector<unsigned int> infection_history(MAX_TIME + 1, 0);
 
     std::vector<std::string> comm_names = std::get<0>(csv_data);
+    // std::vector<std::string> comm_names = { "test" };
     std::vector<std::tuple<double, double>> coordinates = std::get<1>(csv_data);
+    // std::vector<std::tuple<double, double>> coordinates = { {1.0, 1.0} };
+    size_t initial_inf_comm = std::uniform_int_distribution(0ULL, comm_names.size() - 1)(generators[0]);
 
     for (int i = 0; i < comm_names.size(); i++)
     {
         int population = std::get<2>(csv_data)[i];
         int calc_dim = ceil(sqrt(population));
-        dimensions.push_back(calc_dim);
         std::vector<double> weights = {};
-        board new_board(calc_dim, STARTER_AGENTS, AGENT_TYPES, comm_names[i], coordinates[i], weights, generators[0]);
+        board new_board(calc_dim, i == initial_inf_comm ? STARTER_AGENTS : 0, AGENT_TYPES, comm_names[i], coordinates[i], weights, generators[0]);
         prev_board.push_back(new_board);
         board curr = new_board;
         curr_board.push_back(curr);
@@ -600,7 +614,7 @@ int main() {
         curr_board[i].weights = weights;
         prev_board[i].weights = weights;
     }
-    
+
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
 
@@ -624,7 +638,7 @@ int main() {
         if (t % SAVE_STEP == 0) {
             for (int i = 0; i < curr_board.size(); i++)
             {
-                visualization_of_board(curr_board[i], t);
+                //visualization_of_board(curr_board[i], t);
             }
 
         }
@@ -639,10 +653,27 @@ int main() {
 
             step(prev_board[i], curr_board[i], t);
             // print_board(prev_board[i], comm_names[i], t);
-            if (t > VACCINATION_START) {
-                // TODO: we can optimize this by avoiding to update weights when there are no vaccinations left to do
-                update_vaccination_weights(curr_board[i]);
-                vaccinate(curr_board[i], VACCINATIONS_PER_DAY);
+        }
+        if (t > VACCINATION_START) {
+            std::vector<std::pair<float, size_t>> comm_infections;
+            comm_infections.reserve(curr_board.size());
+            for (int b = 0; b < curr_board.size(); b++) {
+                size_t pop = curr_board[b].agents.size();
+                if (curr_board[b].vaccinations_started < pop) {
+                    comm_infections.push_back({float(curr_board[b].status_counts[I]) / pop, b});
+                }
+            }
+            if constexpr (MACRO_VACC_STRAT == vaccination_strategy::HIGH_DENSITY) {
+                std::sort(comm_infections.begin(), comm_infections.end(), std::greater<>());
+            } else {
+                std::sort(comm_infections.begin(), comm_infections.end(), std::less<>());
+            }
+            unsigned long long n_vaccs = VACCINATIONS_PER_DAY;
+            for (int b = 0; b < comm_infections.size() && n_vaccs > 0; b++) {
+                auto& board = curr_board[comm_infections[b].second];
+                update_vaccination_weights(board);
+                unsigned int vaccs = vaccinate(board, n_vaccs);
+                n_vaccs -= vaccs;
             }
         }
 

@@ -22,12 +22,12 @@
 
 #define ONLY_ELIGIBLE false // If TRUE, it chooses only an eligible target to infect. If FALSE, any target can be chosen/tried.
 #define PLOT true   // if we want to do plots (increases execution time drastically)
-#define SCALE 1 //scale for geobubble plot. 
-#define SAVE_STEP 10 // An interval that dictates when data is to be written to .csv data file 
+#define SCALE 1 //scale for geobubble plot.
+#define SAVE_STEP 10 // An interval that dictates when data is to be written to .csv data file
 
-#define SWAP_AMOUNT 10000 // sets the amount of agents to swap each time unit. 
+#define SWAP_AMOUNT 10000 // sets the amount of agents to swap each time unit.
 
-//The two variables that determines reinfection times. 
+//The two variables that determines reinfection times.
 //To disable reinfection, set min & max value to max simulation time plus one (MAX_TIME+1).
 #define RECOVERED_MIN_THRESHOLD 20 // The minimum amount of immunity-days after a recovered agent can be reinfected again.
 #define RECOVERED_MAX_THRESHOLD 80 // The maxmimum amount of immunity-days after a recovered agent can be reinfected again.
@@ -36,15 +36,16 @@
 #define VACCINATION_RATE 28 //The time it takes for the vaccine to work
 #define VACCINATION_EFFICACY 75 //The efficiency of the vaccine
 #define VACCINATION_START 200    // The time at which to begin vaccinating people
-#define VACCINATIONS_PER_DAY 100  // The number of people we can vaccinate per day
+#define VACCINATIONS_PER_DAY 10000  // The number of people we can vaccinate per day
 
 enum class vaccination_strategy {
-    UNIFORM,       // Every agents has equal change of being vaccinated
+    UNIFORM,       // Every agent has an equal chance of being vaccinated
     HIGH_DENSITY,  // Agents in areas with a high density of infected agents have a *higher* chance of being vaccinated
     LOW_DENSITY    // Agents in areas with a high density of infected agents have a *lower* chance of being vaccinated
 };
 
-constexpr vaccination_strategy VACC_STRAT = vaccination_strategy::HIGH_DENSITY;
+constexpr vaccination_strategy MICRO_VACC_STRAT = vaccination_strategy::UNIFORM;
+constexpr vaccination_strategy MACRO_VACC_STRAT = vaccination_strategy::LOW_DENSITY;
 
 
 /**
