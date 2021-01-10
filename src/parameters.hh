@@ -4,7 +4,7 @@
 
 #define INFECTION_RADIUS 50 //The radius in which an agent can infect another
 #define RECOVERY_RATE 14 //The time it takes for an agent to become Recovered
-#define INFECTION_PROBABILITY 25 //Probability for an agent to infect another
+#define INFECTION_PROBABILITY 35 //Probability for an agent to infect another
 #define MAKE_ASYM 50 //The probability that an infected individual is asymptomatic
 #define ASYM_INF_PROB 10 //The probability for asymptomatic carriers to infect others
 
@@ -12,6 +12,8 @@
 
 #define MAX_TIME 365 //The amount of timesteps to run the simulation
 #define STARTER_AGENTS 10 //The amount of agents which starts the simulation infected
+#define RANDOM_OUTBREAK false //If true, will randomly pcim which community the infection begins in.
+                             //If false, picks the first community in the data file.
 
 //The quarantine variables
 #define ENABLE_QUARANTINE false //The flag to enable quarantine
@@ -35,8 +37,8 @@
 
 #define VACCINATION_RATE 28 //The time it takes for the vaccine to work
 #define VACCINATION_EFFICACY 75 //The efficiency of the vaccine
-#define VACCINATION_START 200    // The time at which to begin vaccinating people
-#define VACCINATIONS_PER_DAY 10000  // The number of people we can vaccinate per day
+#define VACCINATION_START 366    // The time at which to begin vaccinating people
+#define VACCINATIONS_PER_DAY 1000  // The number of people we can vaccinate per day
 
 enum class vaccination_strategy {
     UNIFORM,       // Every agent has an equal chance of being vaccinated
