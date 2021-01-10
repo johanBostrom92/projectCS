@@ -683,8 +683,6 @@ int main() {
             }
 
         }
-        //moveAgents(curr_board, SWAP_AMOUNT, populations);
-        //The magic number is how many agents should swap each timestep.
         moveAgents(curr_board, SWAP_AMOUNT, populations);
         prev_board = curr_board;
 
