@@ -46,8 +46,11 @@ enum class vaccination_strategy {
     LOW_DENSITY    // Agents in areas with a high density of infected agents have a *lower* chance of being vaccinated
 };
 
-constexpr vaccination_strategy MICRO_VACC_STRAT = vaccination_strategy::UNIFORM;
+// Defines which *communities* to prioritize vaccinating
 constexpr vaccination_strategy MACRO_VACC_STRAT = vaccination_strategy::LOW_DENSITY;
+// Defines which *agents* within a community to prioritize vaccinating. This won't matter much unless communities are
+// really big, and can be set to uniform in most cases to speed up the simulation.
+constexpr vaccination_strategy MICRO_VACC_STRAT = vaccination_strategy::UNIFORM;
 
 
 /**

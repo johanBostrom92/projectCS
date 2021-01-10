@@ -563,6 +563,47 @@ void moveAgents(std::vector<board>& curr_board, int agents, std::vector<int> wei
     }
 }
 
+void distribute_vaccinations(std::vector<board>& curr_board) {
+    if constexpr (MACRO_VACC_STRAT == vaccination_strategy::UNIFORM) {
+        unsigned int total_pop = 0;
+        for (const auto& b : curr_board) {
+            total_pop += b.agents.size();
+        }
+        std::uniform_real_distribution dis(0.0, 1.0);
+        for (auto& b : curr_board) {
+            double proportion = b.agents.size() / double(total_pop);
+            double n_vaccines = proportion * VACCINATIONS_PER_DAY;
+            double decimal = n_vaccines - floor(n_vaccines);
+            int n_vaccines_final = floor(n_vaccines) + (dis(generators[0]) <= decimal ? 1 : 0);
+            if (n_vaccines_final) {
+                update_vaccination_weights(b);
+                vaccinate(b, n_vaccines_final);
+            }
+        }
+    } else {
+        std::vector<std::pair<float, size_t>> comm_infections;
+        comm_infections.reserve(curr_board.size());
+        for (int b = 0; b < curr_board.size(); b++) {
+            size_t pop = curr_board[b].agents.size();
+            if (curr_board[b].vaccinations_started < pop) {
+                comm_infections.push_back({float(curr_board[b].status_counts[I]) / pop, b});
+            }
+        }
+        if constexpr (MACRO_VACC_STRAT == vaccination_strategy::HIGH_DENSITY) {
+            std::sort(comm_infections.begin(), comm_infections.end(), std::greater<>());
+        } else {
+            std::sort(comm_infections.begin(), comm_infections.end(), std::less<>());
+        }
+        unsigned long long n_vaccs = VACCINATIONS_PER_DAY;
+        for (int b = 0; b < comm_infections.size() && n_vaccs > 0; b++) {
+            auto& board = curr_board[comm_infections[b].second];
+            update_vaccination_weights(board);
+            unsigned int vaccs = vaccinate(board, n_vaccs);
+            n_vaccs -= vaccs;
+        }
+    }
+}
+
 int main() {
 
     // Create random generators
@@ -644,12 +685,10 @@ int main() {
         if (t % SAVE_STEP == 0) {
             for (int i = 0; i < curr_board.size(); i++)
             {
-                //visualization_of_board(curr_board[i], t);
+                visualization_of_board(curr_board[i], t);
             }
 
         }
-        //moveAgents(curr_board, SWAP_AMOUNT, populations);
-        //The magic number is how many agents should swap each timestep.
         moveAgents(curr_board, SWAP_AMOUNT, populations);
         prev_board = curr_board;
 
@@ -661,26 +700,7 @@ int main() {
             // print_board(prev_board[i], comm_names[i], t);
         }
         if (t > VACCINATION_START) {
-            std::vector<std::pair<float, size_t>> comm_infections;
-            comm_infections.reserve(curr_board.size());
-            for (int b = 0; b < curr_board.size(); b++) {
-                size_t pop = curr_board[b].agents.size();
-                if (curr_board[b].vaccinations_started < pop) {
-                    comm_infections.push_back({float(curr_board[b].status_counts[I]) / pop, b});
-                }
-            }
-            if constexpr (MACRO_VACC_STRAT == vaccination_strategy::HIGH_DENSITY) {
-                std::sort(comm_infections.begin(), comm_infections.end(), std::greater<>());
-            } else {
-                std::sort(comm_infections.begin(), comm_infections.end(), std::less<>());
-            }
-            unsigned long long n_vaccs = VACCINATIONS_PER_DAY;
-            for (int b = 0; b < comm_infections.size() && n_vaccs > 0; b++) {
-                auto& board = curr_board[comm_infections[b].second];
-                update_vaccination_weights(board);
-                unsigned int vaccs = vaccinate(board, n_vaccs);
-                n_vaccs -= vaccs;
-            }
+            distribute_vaccinations(curr_board);
         }
 
 
