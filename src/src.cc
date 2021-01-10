@@ -588,10 +588,16 @@ int main() {
     std::vector<unsigned int> infection_history(MAX_TIME + 1, 0);
 
     std::vector<std::string> comm_names = std::get<0>(csv_data);
-    // std::vector<std::string> comm_names = { "test" };
     std::vector<std::tuple<double, double>> coordinates = std::get<1>(csv_data);
-    // std::vector<std::tuple<double, double>> coordinates = { {1.0, 1.0} };
-    size_t initial_inf_comm = std::uniform_int_distribution(0ULL, comm_names.size() - 1)(generators[0]);
+    size_t initial_inf_comm;
+    if (RANDOM_OUTBREAK) {
+        initial_inf_comm = std::uniform_int_distribution(0ULL, comm_names.size() - 1)(generators[0]);
+    }
+    else
+    {
+        initial_inf_comm = 0;
+    }
+    
 
     for (int i = 0; i < comm_names.size(); i++)
     {
